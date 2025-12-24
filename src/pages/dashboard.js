@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
 import { useRouter } from "next/router";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function Dashboard() {
     const router = useRouter();
