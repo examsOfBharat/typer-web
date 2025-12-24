@@ -3,7 +3,7 @@
  * Connects to bramhsastra backend for typing test functionality
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084';
 
 /**
  * Helper function to make API requests

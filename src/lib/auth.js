@@ -3,7 +3,7 @@
  * Handles JWT token management and user session
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084';
+import { API_BASE_URL } from '@/lib/api';
 
 const TOKEN_KEY = 'typer_auth_token';
 const USER_KEY = 'typer_auth_user';
