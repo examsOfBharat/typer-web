@@ -1,0 +1,20 @@
+{
+  "name": "TyperPro - Master Your Typing Skills",
+  "short_name": "TyperPro",
+  "description": "Free online typing test to improve your typing speed and accuracy. Track progress, compete on leaderboards, and become a typing master.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00d4ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+}

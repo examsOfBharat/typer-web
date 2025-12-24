@@ -1,78 +1,574 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Head from "next/head";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { isAuthenticated, getUser, logout } from "@/lib/auth";
 
 export default function Home() {
+  const [typingText, setTypingText] = useState("");
+  const [stats, setStats] = useState({ wpm: 0, tests: 0, users: 0 });
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const fullText = "Master Your Typing Skills";
+
+  // Check auth status on mount
+  useEffect(() => {
+    setIsLoggedIn(isAuthenticated());
+    setUser(getUser());
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setIsLoggedIn(false);
+    setUser(null);
+  };
+
+  // Typing animation effect
+  useEffect(() => {
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index <= fullText.length) {
+        setTypingText(fullText.substring(0, index));
+        index++;
+      } else {
+        clearInterval(timer);
+      }
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Animated stats counter
+  useEffect(() => {
+    const animateStats = () => {
+      const duration = 2000;
+      const steps = 60;
+      const stepDuration = duration / steps;
+
+      let currentStep = 0;
+      const timer = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+
+        setStats({
+          wpm: Math.round(120 * easeOut),
+          tests: Math.round(50000 * easeOut),
+          users: Math.round(10000 * easeOut),
+        });
+
+        if (currentStep >= steps) {
+          clearInterval(timer);
+        }
+      }, stepDuration);
+
+      return () => clearInterval(timer);
+    };
+
+    animateStats();
+  }, []);
+
+  const features = [
+    {
+      icon: "⚡",
+      title: "Real-time WPM",
+      description:
+        "Track your words per minute with instant visual feedback as you type.",
+    },
+    {
+      icon: "🎯",
+      title: "Accuracy Tracking",
+      description:
+        "Monitor your precision with detailed error analysis and correction tips.",
+    },
+    {
+      icon: "🏆",
+      title: "Leaderboards",
+      description:
+        "Compete with students worldwide and climb the global rankings.",
+    },
+    {
+      icon: "📈",
+      title: "Progress Stats",
+      description:
+        "View your improvement over time with detailed performance analytics.",
+    },
+  ];
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      <Head>
+        <title>TyperPro - Free Online Typing Test | Improve Speed & Accuracy</title>
+        <meta
+          name="description"
+          content="Master your typing skills with TyperPro - the free online typing test. Track WPM, accuracy, compete on global leaderboards. Perfect for students, professionals, and competitive typists."
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="keywords" content="typing test, typing speed test, WPM test, free typing test, online typing test, typing practice, improve typing speed, typing accuracy, keyboard test, touch typing, typing games, typing tutor" />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://typer.examsofbharat.com/" />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://typer.examsofbharat.com/" />
+        <meta property="og:title" content="TyperPro - Free Online Typing Test | Master Your Typing Skills" />
+        <meta property="og:description" content="Improve your typing speed and accuracy with TyperPro. Track WPM, compete globally, and become a typing master with our engaging typing tests." />
+        <meta property="og:image" content="https://typer.examsofbharat.com/og-image.png" />
+        <meta property="og:site_name" content="TyperPro" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://typer.examsofbharat.com/" />
+        <meta name="twitter:title" content="TyperPro - Free Online Typing Test" />
+        <meta name="twitter:description" content="Master your typing skills with real-time WPM tracking, accuracy analysis, and global leaderboards." />
+        <meta name="twitter:image" content="https://typer.examsofbharat.com/og-image.png" />
+
+        {/* Structured Data - WebSite */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "TyperPro",
+              "url": "https://typer.examsofbharat.com",
+              "description": "Free online typing test to improve your typing speed and accuracy",
+              "publisher": {
+                "@type": "Organization",
+                "name": "ExamsOfBharat",
+                "url": "https://examsofbharat.com"
+              },
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://typer.examsofbharat.com/test",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
+
+        {/* Structured Data - SoftwareApplication */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "TyperPro",
+              "applicationCategory": "EducationalApplication",
+              "operatingSystem": "Web Browser",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "ratingCount": "10000"
+              }
+            })
+          }}
+        />
+
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <div
+        style={{
+          minHeight: "100vh",
+          background:
+            "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%)",
+        }}
+      >
+        {/* Navigation */}
+        <nav
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: "20px 40px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            background: "rgba(10, 10, 15, 0.8)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              background:
+                "linear-gradient(135deg, #00d4ff, #a855f7, #ec4899)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            TyperPro
+          </div>
+          <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+            <Link
+              href="/"
+              className="nav-link active"
+              style={{ textDecoration: "none", color: "#00d4ff" }}
+            >
+              Home
+            </Link>
+            <Link
+              href="/test"
+              className="nav-link"
+              style={{ textDecoration: "none", color: "#b8b8cc" }}
+            >
+              Practice
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="nav-link"
+              style={{ textDecoration: "none", color: "#b8b8cc" }}
+            >
+              Leaderboard
+            </Link>
+            {isLoggedIn && user ? (
+              <div className="user-badge">
+                <span className="avatar">{user.displayName?.charAt(0).toUpperCase()}</span>
+                <span>{user.displayName}</span>
+                <button className="logout-btn" onClick={handleLogout}>Logout</button>
+              </div>
+            ) : (
+              <Link href="/login">
+                <button className="btn-secondary" style={{ padding: "10px 20px", fontSize: "0.9rem" }}>Login</button>
+              </Link>
+            )}
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <section
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "120px 20px 60px",
+            textAlign: "center",
+            position: "relative",
+          }}
+        >
+          {/* Animated Background Orbs */}
+          <div
+            style={{
+              position: "absolute",
+              top: "20%",
+              left: "10%",
+              width: "300px",
+              height: "300px",
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%)",
+              filter: "blur(40px)",
+              animation: "float 6s ease-in-out infinite",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: "20%",
+              right: "10%",
+              width: "400px",
+              height: "400px",
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)",
+              filter: "blur(40px)",
+              animation: "float 8s ease-in-out infinite reverse",
+            }}
+          />
+
+          <h1
+            style={{
+              fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
+              fontWeight: 800,
+              marginBottom: "24px",
+              lineHeight: 1.1,
+            }}
+          >
+            <span
+              style={{
+                background:
+                  "linear-gradient(135deg, #00d4ff, #a855f7, #ec4899)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {typingText}
+            </span>
+            <span
+              style={{
+                display: "inline-block",
+                width: "4px",
+                height: "clamp(2rem, 5vw, 3.5rem)",
+                background: "#00d4ff",
+                marginLeft: "8px",
+                verticalAlign: "middle",
+                animation: "blink 1s infinite",
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </h1>
+          <p
+            style={{
+              fontSize: "clamp(1rem, 2vw, 1.25rem)",
+              color: "#b8b8cc",
+              maxWidth: "600px",
+              marginBottom: "40px",
+              lineHeight: 1.6,
+            }}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            Join thousands of students improving their typing speed with our
+            engaging, game-like experience. Track your progress, compete
+            globally, and become a typing master.
+          </p>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href="/test">
+              <button className="btn-primary" style={{ fontSize: "1.1rem" }}>
+                Start Typing Test
+              </button>
+            </Link>
+            <Link href="/leaderboard">
+              <button className="btn-secondary" style={{ fontSize: "1.1rem" }}>
+                View Leaderboard
+              </button>
+            </Link>
+          </div>
+
+          {/* Live Stats */}
+          <div
+            style={{
+              display: "flex",
+              gap: "40px",
+              marginTop: "80px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <div
+                style={{
+                  fontSize: "2.5rem",
+                  fontWeight: 700,
+                  color: "#00d4ff",
+                }}
+              >
+                {stats.wpm}+
+              </div>
+              <div style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
+                Avg. WPM
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div
+                style={{
+                  fontSize: "2.5rem",
+                  fontWeight: 700,
+                  color: "#a855f7",
+                }}
+              >
+                {stats.tests.toLocaleString()}+
+              </div>
+              <div style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
+                Tests Taken
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div
+                style={{
+                  fontSize: "2.5rem",
+                  fontWeight: 700,
+                  color: "#ec4899",
+                }}
+              >
+                {stats.users.toLocaleString()}+
+              </div>
+              <div style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
+                Active Users
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section
+          style={{
+            padding: "80px 20px",
+            maxWidth: "1200px",
+            margin: "0 auto",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "2.5rem",
+              fontWeight: 700,
+              textAlign: "center",
+              marginBottom: "60px",
+            }}
+          >
+            Why Choose{" "}
+            <span
+              style={{
+                background:
+                  "linear-gradient(135deg, #00d4ff, #a855f7)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              TyperPro
+            </span>
+            ?
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "24px",
+            }}
+          >
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="glass-card"
+                style={{
+                  padding: "32px",
+                  transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-8px)";
+                  e.currentTarget.style.borderColor = "#00d4ff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                }}
+              >
+                <div style={{ fontSize: "3rem", marginBottom: "16px" }}>
+                  {feature.icon}
+                </div>
+                <h3
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                    marginBottom: "12px",
+                  }}
+                >
+                  {feature.title}
+                </h3>
+                <p style={{ color: "#b8b8cc", lineHeight: 1.6 }}>
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section
+          style={{
+            padding: "100px 20px",
+            textAlign: "center",
+            position: "relative",
+          }}
+        >
+          <div
+            className="glass-card"
+            style={{
+              maxWidth: "800px",
+              margin: "0 auto",
+              padding: "60px 40px",
+              background:
+                "linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1))",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "2rem",
+                fontWeight: 700,
+                marginBottom: "20px",
+              }}
+            >
+              Ready to Improve Your Skills?
+            </h2>
+            <p
+              style={{
+                color: "#b8b8cc",
+                marginBottom: "32px",
+                fontSize: "1.1rem",
+              }}
+            >
+              Start your typing journey today. No registration required.
+            </p>
+            <Link href="/test">
+              <button
+                className="btn-primary pulse-glow"
+                style={{ fontSize: "1.2rem", padding: "18px 40px" }}
+              >
+                Take the Test Now
+              </button>
+            </Link>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer
+          style={{
+            padding: "40px 20px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: 700,
+              marginBottom: "16px",
+              background:
+                "linear-gradient(135deg, #00d4ff, #a855f7)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            TyperPro
+          </div>
+          <p style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
+            © 2024 TyperPro by ExamsOfBharat. All rights reserved.
+          </p>
+        </footer>
+
+        <style jsx>{`
+          @keyframes blink {
+            0%,
+            100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0;
+            }
+          }
+          @keyframes float {
+            0%,
+            100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-20px);
+            }
+          }
+        `}</style>
+      </div>
+    </>
   );
 }

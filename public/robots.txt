@@ -1,0 +1,15 @@
+# TyperPro - Typing Test Application
+# https://typer.examsofbharat.com
+
+User-agent: *
+Allow: /
+Allow: /test
+Allow: /leaderboard
+Allow: /login
+
+# Disallow private user pages
+Disallow: /dashboard
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://typer.examsofbharat.com/sitemap.xml
