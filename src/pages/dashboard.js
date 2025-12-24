@@ -52,7 +52,7 @@ export default function Dashboard() {
 
     const handleLogout = () => {
         logout();
-        router.push('/login');
+        router.push('/');
     };
 
     if (!mounted) return null;

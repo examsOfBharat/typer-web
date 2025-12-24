@@ -18,7 +18,7 @@ export default function LoginPage() {
     useEffect(() => {
         // Redirect if already authenticated
         if (isAuthenticated()) {
-            router.push('/test');
+            router.push('/');
         }
     }, [router]);
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
             }
 
             if (response.success) {
-                router.push('/test');
+                router.push('/');
             } else {
                 setError(response.message || 'An error occurred');
             }

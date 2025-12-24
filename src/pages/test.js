@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { getSampleText, getOrCreateUserId, submitTypingTest } from "@/lib/api";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
 
@@ -299,7 +299,7 @@ export default function TypingTest() {
         setStartTime(Date.now());
         setUserInput("");
         setTimeout(() => {
-            inputRef.current?.focus();
+            inputRef.current?.focus({ preventScroll: true });
         }, 50);
     };
 
@@ -375,8 +375,8 @@ export default function TypingTest() {
         if (gameState !== "playing") return;
         const value = e.target.value;
 
-        // Play typing sound
-        playTypingSound();
+        // Note: Removed playTypingSound() here as it was causing keystroke lag
+        // The audio synthesis on every keystroke is too expensive for smooth typing
 
         setUserInput(value);
         if (value.length >= text.length) {
@@ -389,21 +389,54 @@ export default function TypingTest() {
         loadText();
     };
 
-    const renderText = () => {
-        return text.split("").map((char, index) => {
+    // Optimized text rendering - only render a window around current position for long texts
+    const WINDOW_SIZE = 500; // Characters to render before and after current position
+
+    const renderedText = useMemo(() => {
+        const currentPos = userInput.length;
+        const textLength = text.length;
+
+        // For short texts, render everything
+        if (textLength <= WINDOW_SIZE * 2) {
+            return text.split("").map((char, index) => {
+                let className = "char-pending";
+                if (index < currentPos) {
+                    className = userInput[index] === char ? "char-correct" : "char-incorrect";
+                } else if (index === currentPos) {
+                    className = "char-current";
+                }
+                return (
+                    <span key={index} className={className}>
+                        {char}
+                    </span>
+                );
+            });
+        }
+
+        // For long texts, only render a window around current position
+        const startIndex = Math.max(0, currentPos - WINDOW_SIZE);
+        const endIndex = Math.min(textLength, currentPos + WINDOW_SIZE);
+
+        const elements = [];
+
+        // Render the visible window (no ellipsis to avoid alignment shifts)
+        for (let index = startIndex; index < endIndex; index++) {
+            const char = text[index];
             let className = "char-pending";
-            if (index < userInput.length) {
+            if (index < currentPos) {
                 className = userInput[index] === char ? "char-correct" : "char-incorrect";
-            } else if (index === userInput.length) {
+            } else if (index === currentPos) {
                 className = "char-current";
             }
-            return (
+            elements.push(
                 <span key={index} className={className}>
                     {char}
                 </span>
             );
-        });
-    };
+        }
+
+        return elements;
+    }, [text, userInput]);
 
     const getAccuracyColor = () => {
         if (accuracy >= 90) return "#10b981";
@@ -570,24 +603,25 @@ export default function TypingTest() {
                         {/* Typing Arena */}
                         <div
                             className="typing-arena-new"
-                            onClick={() => gameState === "playing" && inputRef.current?.focus()}
+                            onClick={() => gameState === "playing" && inputRef.current?.focus({ preventScroll: true })}
                         >
                             <div className="typing-text">
-                                {renderText()}
+                                {renderedText}
                             </div>
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={userInput}
-                                onChange={handleInput}
-                                disabled={gameState !== "playing"}
-                                className="hidden-input"
-                                autoComplete="off"
-                                autoCorrect="off"
-                                autoCapitalize="off"
-                                spellCheck="false"
-                            />
                         </div>
+                        {/* Hidden input moved outside arena to prevent scroll issues */}
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={userInput}
+                            onChange={handleInput}
+                            disabled={gameState !== "playing"}
+                            className="hidden-input"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                        />
 
                         {/* Typing Hint */}
                         {gameState === "playing" && (

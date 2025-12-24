@@ -233,6 +233,15 @@ export default function Home() {
             >
               Leaderboard
             </Link>
+            {isLoggedIn && user && (
+              <Link
+                href="/dashboard"
+                className="nav-link"
+                style={{ textDecoration: "none", color: "#b8b8cc" }}
+              >
+                Dashboard
+              </Link>
+            )}
             {isLoggedIn && user ? (
               <div className="user-badge">
                 <span className="avatar">{user.displayName?.charAt(0).toUpperCase()}</span>
