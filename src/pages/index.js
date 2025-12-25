@@ -2,12 +2,14 @@ import Head from "next/head";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
+import { getContests } from "@/lib/api";
 
 export default function Home() {
   const [typingText, setTypingText] = useState("");
   const [stats, setStats] = useState({ wpm: 0, tests: 0, users: 0 });
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [registeredContests, setRegisteredContests] = useState([]);
   const fullText = "Master Your Typing Skills";
 
   // Check auth status on mount
@@ -20,7 +22,25 @@ export default function Home() {
     logout();
     setIsLoggedIn(false);
     setUser(null);
+    setRegisteredContests([]);
   };
+
+  // Fetch registered contests for logged-in users
+  useEffect(() => {
+    const fetchRegisteredContests = async () => {
+      if (isLoggedIn && user?.userId) {
+        try {
+          const contests = await getContests(user.userId);
+          // Filter to only show contests user is registered for
+          const registered = contests.filter(c => c.isUserRegistered && c.status !== 'COMPLETED');
+          setRegisteredContests(registered);
+        } catch (error) {
+          console.error('Failed to fetch contests:', error);
+        }
+      }
+    };
+    fetchRegisteredContests();
+  }, [isLoggedIn, user]);
 
   // Typing animation effect
   useEffect(() => {
@@ -233,6 +253,13 @@ export default function Home() {
             >
               Leaderboard
             </Link>
+            <Link
+              href="/contest"
+              className="nav-link"
+              style={{ textDecoration: "none", color: "#b8b8cc" }}
+            >
+              Contests
+            </Link>
             {isLoggedIn && user && (
               <Link
                 href="/dashboard"
@@ -255,6 +282,150 @@ export default function Home() {
             )}
           </div>
         </nav>
+
+        {/* Personalized Welcome Section for Logged-in Users - Shows at TOP */}
+        {isLoggedIn && user && (
+          <section
+            style={{
+              padding: "120px 20px 40px",
+              maxWidth: "1200px",
+              margin: "0 auto",
+            }}
+          >
+            <div
+              className="glass-card"
+              style={{
+                padding: "40px",
+                borderLeft: "4px solid #00d4ff",
+              }}
+            >
+              {/* Greeting */}
+              <div style={{ marginBottom: "32px" }}>
+                <h2
+                  style={{
+                    fontSize: "2rem",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Welcome back,{" "}
+                  <span
+                    style={{
+                      background: "linear-gradient(135deg, #00d4ff, #a855f7)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {user.displayName}!
+                  </span>
+                </h2>
+                <p style={{ color: "#b8b8cc" }}>
+                  Ready to improve your typing skills today?
+                </p>
+              </div>
+
+              {/* Registered Contests */}
+              {registeredContests.length > 0 && (
+                <div style={{ marginBottom: "32px" }}>
+                  <h3 style={{ fontSize: "1.2rem", marginBottom: "16px", color: "#b8b8cc" }}>
+                    🎯 Your Upcoming Contests
+                  </h3>
+                  <div style={{ display: "grid", gap: "16px" }}>
+                    {registeredContests.map((contest) => {
+                      const now = new Date();
+                      const start = new Date(contest.startTime);
+                      const diff = start - now;
+                      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                      const isLive = contest.status === 'LIVE';
+
+                      return (
+                        <div
+                          key={contest.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "20px 24px",
+                            background: isLive ? "rgba(16, 185, 129, 0.1)" : "rgba(0, 0, 0, 0.3)",
+                            borderRadius: "12px",
+                            border: isLive ? "1px solid #10b981" : "1px solid rgba(255, 255, 255, 0.1)",
+                            flexWrap: "wrap",
+                            gap: "16px",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                              {contest.title}
+                            </div>
+                            <div style={{ fontSize: "0.85rem", color: "#6b6b80" }}>
+                              ⚡ {contest.difficulty} • ⏱ {Math.floor(contest.durationSeconds / 60)} min
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                            {isLive ? (
+                              <>
+                                <span
+                                  style={{
+                                    padding: "6px 16px",
+                                    borderRadius: "20px",
+                                    background: "rgba(16, 185, 129, 0.2)",
+                                    color: "#10b981",
+                                    fontWeight: 600,
+                                    fontSize: "0.85rem",
+                                  }}
+                                >
+                                  🔴 Live Now!
+                                </span>
+                                <Link href={`/contest/${contest.id}`}>
+                                  <button className="btn-primary" style={{ padding: "10px 20px" }}>
+                                    Join Now
+                                  </button>
+                                </Link>
+                              </>
+                            ) : (
+                              <span
+                                style={{
+                                  padding: "6px 16px",
+                                  borderRadius: "20px",
+                                  background: "rgba(245, 158, 11, 0.2)",
+                                  color: "#f59e0b",
+                                  fontWeight: 600,
+                                  fontSize: "0.85rem",
+                                }}
+                              >
+                                🕐 Starts in {days > 0 ? `${days}d ` : ""}{hours > 0 ? `${hours}h ` : ""}{minutes}m
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                <Link href="/test">
+                  <button className="btn-primary">
+                    ⌨️ Start Practice
+                  </button>
+                </Link>
+                <Link href="/dashboard">
+                  <button className="btn-secondary">
+                    📊 View Dashboard
+                  </button>
+                </Link>
+                <Link href="/contest">
+                  <button className="btn-secondary">
+                    🏆 Browse Contests
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Hero Section */}
         <section

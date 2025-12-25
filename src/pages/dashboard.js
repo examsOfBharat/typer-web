@@ -84,11 +84,11 @@ export default function Dashboard() {
                         <Link href="/dashboard" className="nav-link active">Dashboard</Link>
                         {user && (
                             <div className="user-badge">
-                                <span className="user-icon">👤</span>
+                                <span className="avatar">{user.displayName?.charAt(0).toUpperCase()}</span>
                                 <span>{user.displayName}</span>
+                                <button onClick={handleLogout} className="logout-btn">Logout</button>
                             </div>
                         )}
-                        <button onClick={handleLogout} className="logout-btn">Logout</button>
                     </div>
                 </nav>
 
@@ -106,7 +106,34 @@ export default function Dashboard() {
                     ) : dashboard ? (
                         <>
                             {/* Hero Section with Score */}
-                            <section className="hero-section">
+                            <section className="hero-section" style={{ position: "relative" }}>
+                                {/* Global Points Badge - Top Right Corner */}
+                                <div
+                                    title="Points: Practice (max 5 pts based on score) + Contest (from competitions). Higher points = higher rank!"
+                                    style={{
+                                        position: "absolute",
+                                        top: "16px",
+                                        right: "16px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        padding: "8px 16px",
+                                        background: "linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(0, 212, 255, 0.2))",
+                                        borderRadius: "50px",
+                                        border: "1px solid rgba(168, 85, 247, 0.3)",
+                                        cursor: "help"
+                                    }}>
+                                    <span style={{ fontSize: "1.2rem" }}>🏆</span>
+                                    <div style={{ textAlign: "left" }}>
+                                        <div style={{ fontSize: "1rem", fontWeight: "700", color: "#a855f7" }}>
+                                            {dashboard.totalPoints || 0} pts
+                                        </div>
+                                        <div style={{ fontSize: "0.65rem", color: "#6b6b80" }}>
+                                            {dashboard.globalRank ? `Rank #${dashboard.globalRank}` : "Global Points"}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="score-card">
                                     <div className="score-ring">
                                         <svg viewBox="0 0 120 120">
@@ -117,16 +144,56 @@ export default function Dashboard() {
                                                 cy="60"
                                                 r="52"
                                                 style={{
-                                                    strokeDasharray: `${(dashboard.finalScore / 100) * 327} 327`
+                                                    strokeDasharray: `${(dashboard.finalScore / 100) * 327} 327`,
+                                                    stroke: dashboard.performanceRating === 'Below Average'
+                                                        ? "#f97316"  // Orange
+                                                        : dashboard.performanceRating === 'Average'
+                                                            ? "#eab308"  // Yellow
+                                                            : dashboard.performanceRating === 'Good'
+                                                                ? "#22c55e"  // Green
+                                                                : dashboard.performanceRating === 'Very Good'
+                                                                    ? "#3b82f6"  // Blue
+                                                                    : "#a855f7"  // Purple for Awesome
                                                 }}
                                             />
                                         </svg>
                                         <div className="score-value">
-                                            <span className="score-number">{dashboard.finalScore}</span>
-                                            <span className="score-badge">{dashboard.performanceBadge}</span>
+                                            <span className="score-number" style={{
+                                                background: dashboard.performanceRating === 'Below Average'
+                                                    ? "linear-gradient(135deg, #f97316, #fb923c)"
+                                                    : dashboard.performanceRating === 'Average'
+                                                        ? "linear-gradient(135deg, #eab308, #facc15)"
+                                                        : dashboard.performanceRating === 'Good'
+                                                            ? "linear-gradient(135deg, #22c55e, #4ade80)"
+                                                            : dashboard.performanceRating === 'Very Good'
+                                                                ? "linear-gradient(135deg, #3b82f6, #60a5fa)"
+                                                                : "linear-gradient(135deg, #a855f7, #c084fc)",
+                                                WebkitBackgroundClip: "text",
+                                                WebkitTextFillColor: "transparent",
+                                                backgroundClip: "text"
+                                            }}>{dashboard.finalScore}</span>
+                                            <span className="score-max">/100</span>
                                         </div>
                                     </div>
-                                    <h2 className="performance-rating">{dashboard.performanceRating}</h2>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                                        <h2 className="performance-rating">{dashboard.performanceRating}</h2>
+                                        <span
+                                            className="info-tooltip"
+                                            title="Score is calculated from: WPM (40%), Accuracy (35%), Consistency (15%), Practice Volume (10%)"
+                                            style={{
+                                                cursor: "help",
+                                                fontSize: "0.9rem",
+                                                color: "rgba(255,255,255,0.5)",
+                                                border: "1px solid rgba(255,255,255,0.3)",
+                                                borderRadius: "50%",
+                                                width: "18px",
+                                                height: "18px",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                justifyContent: "center"
+                                            }}
+                                        >?</span>
+                                    </div>
                                     <p className="member-since">Member since {new Date(dashboard.memberSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
                                 </div>
 
@@ -186,25 +253,194 @@ export default function Dashboard() {
                                 </div>
                             </section>
 
-                            {/* Weekly Progress */}
+                            {/* Global Ranking Points */}
+                            <section className="ranking-section" style={{
+                                marginTop: "32px",
+                                padding: "24px",
+                                background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 212, 255, 0.1))",
+                                borderRadius: "16px",
+                                border: "1px solid rgba(168, 85, 247, 0.2)"
+                            }}>
+                                <h3 style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+                                    🏆 Global Ranking
+                                    {dashboard.globalRank && (
+                                        <span style={{
+                                            marginLeft: "auto",
+                                            padding: "4px 12px",
+                                            background: "rgba(168, 85, 247, 0.2)",
+                                            borderRadius: "20px",
+                                            color: "#a855f7",
+                                            fontSize: "0.9rem"
+                                        }}>
+                                            Rank #{dashboard.globalRank}
+                                        </span>
+                                    )}
+                                </h3>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px" }}>
+                                    <div style={{
+                                        padding: "20px",
+                                        background: "rgba(0, 0, 0, 0.3)",
+                                        borderRadius: "12px",
+                                        textAlign: "center",
+                                        border: "1px solid rgba(16, 185, 129, 0.3)"
+                                    }}>
+                                        <div style={{ fontSize: "2rem", fontWeight: "700", color: "#10b981" }}>
+                                            {dashboard.practicePoints || 0}
+                                        </div>
+                                        <div style={{ color: "#b8b8cc", fontSize: "0.85rem" }}>Practice Points</div>
+                                        <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginTop: "4px" }}>Max: 5</div>
+                                    </div>
+                                    <div style={{
+                                        padding: "20px",
+                                        background: "rgba(0, 0, 0, 0.3)",
+                                        borderRadius: "12px",
+                                        textAlign: "center",
+                                        border: "1px solid rgba(0, 212, 255, 0.3)"
+                                    }}>
+                                        <div style={{ fontSize: "2rem", fontWeight: "700", color: "#00d4ff" }}>
+                                            {dashboard.contestPoints || 0}
+                                        </div>
+                                        <div style={{ color: "#b8b8cc", fontSize: "0.85rem" }}>Contest Points</div>
+                                        <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginTop: "4px" }}>From competitions</div>
+                                    </div>
+                                    <div style={{
+                                        padding: "20px",
+                                        background: "rgba(168, 85, 247, 0.1)",
+                                        borderRadius: "12px",
+                                        textAlign: "center",
+                                        border: "1px solid rgba(168, 85, 247, 0.3)"
+                                    }}>
+                                        <div style={{ fontSize: "2rem", fontWeight: "700", color: "#a855f7" }}>
+                                            {dashboard.totalPoints || 0}
+                                        </div>
+                                        <div style={{ color: "#b8b8cc", fontSize: "0.85rem" }}>Total Points</div>
+                                        <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginTop: "4px" }}>Combined score</div>
+                                    </div>
+                                </div>
+                                {(!dashboard.globalRank || dashboard.totalPoints === 0) && (
+                                    <p style={{ color: "#6b6b80", fontSize: "0.85rem", marginTop: "16px", textAlign: "center" }}>
+                                        Complete more practice tests to earn points and appear on the global leaderboard!
+                                    </p>
+                                )}
+                            </section>
+
+                            {/* Weekly Progress - Line Chart */}
                             {dashboard.weeklyProgress && dashboard.weeklyProgress.length > 0 && (
                                 <section className="progress-section">
                                     <h3>📊 Weekly Progress</h3>
-                                    <div className="progress-chart">
-                                        {dashboard.weeklyProgress.map((week, index) => (
-                                            <div key={index} className="week-bar">
-                                                <div className="bar-container">
-                                                    <div
-                                                        className="bar-fill"
-                                                        style={{ height: `${Math.min((week.avgWpm / 100) * 100, 100)}%` }}
-                                                    >
-                                                        <span className="bar-value">{week.avgWpm}</span>
-                                                    </div>
-                                                </div>
-                                                <span className="week-label">{week.week}</span>
-                                                <span className="test-count">{week.testCount} tests</span>
-                                            </div>
-                                        ))}
+                                    <div style={{ position: "relative", height: "250px", padding: "20px 0" }}>
+                                        {/* SVG Line Chart */}
+                                        <svg
+                                            viewBox="0 0 500 200"
+                                            style={{ width: "100%", height: "200px" }}
+                                            preserveAspectRatio="xMidYMid meet"
+                                        >
+                                            {/* Gradient fill under the line */}
+                                            <defs>
+                                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                    <stop offset="0%" stopColor="#667eea" stopOpacity="0.4" />
+                                                    <stop offset="100%" stopColor="#667eea" stopOpacity="0" />
+                                                </linearGradient>
+                                                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                    <stop offset="0%" stopColor="#667eea" />
+                                                    <stop offset="100%" stopColor="#a855f7" />
+                                                </linearGradient>
+                                            </defs>
+
+                                            {/* Grid lines */}
+                                            {[0, 1, 2, 3, 4].map(i => (
+                                                <line
+                                                    key={i}
+                                                    x1="40" y1={40 + i * 35}
+                                                    x2="480" y2={40 + i * 35}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth="1"
+                                                />
+                                            ))}
+
+                                            {/* Y-axis labels */}
+                                            {[100, 75, 50, 25, 0].map((val, i) => (
+                                                <text
+                                                    key={val}
+                                                    x="30" y={45 + i * 35}
+                                                    fontSize="10"
+                                                    fill="rgba(255,255,255,0.5)"
+                                                    textAnchor="end"
+                                                >{val}</text>
+                                            ))}
+
+                                            {/* Area fill under line */}
+                                            <path
+                                                d={`M 40 ${180 - (dashboard.weeklyProgress[0]?.avgWpm || 0) * 1.4} ` +
+                                                    dashboard.weeklyProgress.map((week, i) => {
+                                                        const x = 40 + (i * (440 / Math.max(dashboard.weeklyProgress.length - 1, 1)));
+                                                        const y = 180 - Math.min(week.avgWpm, 100) * 1.4;
+                                                        return `L ${x} ${y}`;
+                                                    }).join(' ') +
+                                                    ` L ${40 + (440 / Math.max(dashboard.weeklyProgress.length - 1, 1)) * (dashboard.weeklyProgress.length - 1)} 180 L 40 180 Z`
+                                                }
+                                                fill="url(#chartGradient)"
+                                            />
+
+                                            {/* Line */}
+                                            <path
+                                                d={dashboard.weeklyProgress.map((week, i) => {
+                                                    const x = 40 + (i * (440 / Math.max(dashboard.weeklyProgress.length - 1, 1)));
+                                                    const y = 180 - Math.min(week.avgWpm, 100) * 1.4;
+                                                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                                                }).join(' ')}
+                                                fill="none"
+                                                stroke="url(#lineGradient)"
+                                                strokeWidth="3"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+
+                                            {/* Data points */}
+                                            {dashboard.weeklyProgress.map((week, i) => {
+                                                const x = 40 + (i * (440 / Math.max(dashboard.weeklyProgress.length - 1, 1)));
+                                                const y = 180 - Math.min(week.avgWpm, 100) * 1.4;
+                                                return (
+                                                    <g key={i}>
+                                                        <circle
+                                                            cx={x} cy={y} r="6"
+                                                            fill="#1a1a2e"
+                                                            stroke="url(#lineGradient)"
+                                                            strokeWidth="2"
+                                                        />
+                                                        <circle cx={x} cy={y} r="3" fill="#667eea" />
+                                                    </g>
+                                                );
+                                            })}
+
+                                            {/* X-axis labels */}
+                                            {dashboard.weeklyProgress.map((week, i) => {
+                                                const x = 40 + (i * (440 / Math.max(dashboard.weeklyProgress.length - 1, 1)));
+                                                return (
+                                                    <text
+                                                        key={i}
+                                                        x={x} y="198"
+                                                        fontSize="9"
+                                                        fill="rgba(255,255,255,0.5)"
+                                                        textAnchor="middle"
+                                                    >{week.week}</text>
+                                                );
+                                            })}
+                                        </svg>
+
+                                        {/* Legend */}
+                                        <div style={{
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            gap: "24px",
+                                            marginTop: "16px",
+                                            fontSize: "0.85rem",
+                                            color: "rgba(255,255,255,0.6)"
+                                        }}>
+                                            <span>📈 WPM Progress</span>
+                                            <span>•</span>
+                                            <span>Tests: {dashboard.weeklyProgress.reduce((sum, w) => sum + w.testCount, 0)}</span>
+                                        </div>
                                     </div>
                                 </section>
                             )}
@@ -342,25 +578,40 @@ export default function Dashboard() {
                 .user-badge {
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
-                    padding: 0.5rem 1rem;
-                    background: rgba(102, 126, 234, 0.2);
-                    border-radius: 20px;
-                    border: 1px solid rgba(102, 126, 234, 0.3);
+                    gap: 8px;
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    border-radius: 50px;
+                    padding: 8px 16px;
+                    font-size: 0.9rem;
+                    color: #00d4ff;
+                }
+
+                .user-badge .avatar {
+                    width: 24px;
+                    height: 24px;
+                    background: linear-gradient(135deg, #00d4ff, #a855f7);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.7rem;
+                    color: #ffffff;
+                    font-weight: 700;
                 }
 
                 .logout-btn {
-                    background: rgba(255, 100, 100, 0.2);
-                    border: 1px solid rgba(255, 100, 100, 0.3);
-                    color: #ff6b6b;
-                    padding: 0.5rem 1rem;
-                    border-radius: 8px;
+                    background: none;
+                    border: none;
+                    color: #6b6b80;
                     cursor: pointer;
-                    transition: all 0.3s;
+                    padding: 4px 8px;
+                    font-size: 0.85rem;
+                    transition: color 0.3s ease;
                 }
 
                 .logout-btn:hover {
-                    background: rgba(255, 100, 100, 0.3);
+                    color: #ef4444;
                 }
 
                 .dashboard-main {
@@ -442,7 +693,7 @@ export default function Dashboard() {
                 }
 
                 .score-number {
-                    display: block;
+                    display: inline;
                     font-size: 2.5rem;
                     font-weight: 700;
                     background: linear-gradient(135deg, #667eea, #764ba2);
@@ -451,7 +702,15 @@ export default function Dashboard() {
                     background-clip: text;
                 }
 
+                .score-max {
+                    display: inline;
+                    font-size: 1rem;
+                    font-weight: 500;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
                 .score-badge {
+                    display: block;
                     font-size: 1.5rem;
                 }
 
@@ -541,14 +800,22 @@ export default function Dashboard() {
                     font-size: 2rem;
                 }
 
+                .metric-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
                 .metric-value {
                     font-size: 2rem;
                     font-weight: 700;
+                    line-height: 1;
                 }
 
                 .metric-label {
                     color: rgba(255, 255, 255, 0.6);
                     font-size: 0.875rem;
+                    margin-top: 4px;
                 }
 
                 .metric-best {

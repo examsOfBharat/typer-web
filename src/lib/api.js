@@ -175,3 +175,89 @@ export function getSampleText(difficulty = 'medium', duration = 60) {
 
   return combinedText;
 }
+
+// =========== CONTEST API FUNCTIONS ===========
+
+/**
+ * Get all contests
+ * @param {string} userId - Optional user ID to check registration status
+ * @returns {Promise<Array>}
+ */
+export async function getContests(userId = null) {
+  const url = userId ? `/typer/contests?userId=${encodeURIComponent(userId)}` : '/typer/contests';
+  return apiRequest(url);
+}
+
+/**
+ * Get contest by ID
+ * @param {string} contestId - Contest ID
+ * @param {string} userId - Optional user ID
+ * @returns {Promise<Object>}
+ */
+export async function getContestById(contestId, userId = null) {
+  const url = userId
+    ? `/typer/contests/${contestId}?userId=${encodeURIComponent(userId)}`
+    : `/typer/contests/${contestId}`;
+  return apiRequest(url);
+}
+
+/**
+ * Register for a contest
+ * @param {string} contestId - Contest ID
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>}
+ */
+export async function registerForContest(contestId, userId) {
+  return apiRequest(`/typer/contests/${contestId}/register?userId=${encodeURIComponent(userId)}`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Submit contest test result
+ * @param {string} contestId - Contest ID
+ * @param {Object} data - Test result data
+ * @returns {Promise<Object>}
+ */
+export async function submitContestTest(contestId, data) {
+  return apiRequest(`/typer/contests/${contestId}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Get contest leaderboard
+ * @param {string} contestId - Contest ID
+ * @returns {Promise<Array>}
+ */
+export async function getContestLeaderboard(contestId) {
+  return apiRequest(`/typer/contests/${contestId}/leaderboard`);
+}
+
+/**
+ * Get global leaderboard
+ * @returns {Promise<Array>}
+ */
+export async function getGlobalLeaderboard() {
+  return apiRequest('/typer/global-leaderboard');
+}
+
+/**
+ * Get user's contest history (used for dashboard)
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>}
+ */
+export async function getUserContestHistory(userId) {
+  return apiRequest(`/typer/user/contest-history?userId=${encodeURIComponent(userId)}`);
+}
+
+/**
+ * Get user's rewards
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>}
+ */
+export async function getUserRewards(userId) {
+  return apiRequest(`/typer/user/rewards?userId=${encodeURIComponent(userId)}`);
+}
+

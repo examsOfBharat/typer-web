@@ -18,7 +18,8 @@ export default function LoginPage() {
     useEffect(() => {
         // Redirect if already authenticated
         if (isAuthenticated()) {
-            router.push('/');
+            const redirect = router.query.redirect || '/';
+            router.push(redirect);
         }
     }, [router]);
 
@@ -46,7 +47,9 @@ export default function LoginPage() {
             }
 
             if (response.success) {
-                router.push('/');
+                // Redirect to specified page or home
+                const redirect = router.query.redirect || '/';
+                router.push(redirect);
             } else {
                 setError(response.message || 'An error occurred');
             }
