@@ -284,57 +284,84 @@ export default function Contests() {
                                         gap: "12px",
                                         alignItems: "flex-end"
                                     }}>
-                                        {contest.status === "UPCOMING" && (
-                                            contest.isUserRegistered ? (
-                                                <span style={{
-                                                    padding: "12px 24px",
-                                                    background: "rgba(16, 185, 129, 0.2)",
-                                                    border: "1px solid #10b981",
-                                                    borderRadius: "50px",
-                                                    color: "#10b981",
-                                                    fontWeight: 600
-                                                }}>
-                                                    ✓ Registered
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    className="btn-primary"
-                                                    onClick={() => handleRegister(contest.id)}
-                                                    disabled={registering === contest.id}
-                                                >
-                                                    {registering === contest.id ? "Registering..." : "Register Now"}
-                                                </button>
-                                            )
-                                        )}
+                                        {/* Determine real-time status based on current time */}
+                                        {(() => {
+                                            const now = new Date();
+                                            const startTime = new Date(contest.startTime);
+                                            const endTime = new Date(contest.endTime);
+                                            const isLiveByTime = now >= startTime && now < endTime;
+                                            const isCompletedByTime = now >= endTime;
+                                            const isUpcomingByTime = now < startTime;
 
-                                        {contest.status === "LIVE" && contest.isUserRegistered && !contest.hasUserSubmitted && (
-                                            <Link href={`/contest/${contest.id}`}>
-                                                <button className="btn-primary pulse-glow">
-                                                    🎯 Start Contest
-                                                </button>
-                                            </Link>
-                                        )}
+                                            // Show Start button if contest is LIVE or if startTime has passed
+                                            if ((contest.status === "LIVE" || isLiveByTime) && contest.isUserRegistered && !contest.hasUserSubmitted) {
+                                                return (
+                                                    <Link href={`/contest/${contest.id}`}>
+                                                        <button className="btn-primary pulse-glow">
+                                                            🎯 Start Contest
+                                                        </button>
+                                                    </Link>
+                                                );
+                                            }
 
-                                        {contest.status === "LIVE" && contest.hasUserSubmitted && (
-                                            <span style={{
-                                                padding: "12px 24px",
-                                                background: "rgba(16, 185, 129, 0.2)",
-                                                border: "1px solid #10b981",
-                                                borderRadius: "50px",
-                                                color: "#10b981",
-                                                fontWeight: 600
-                                            }}>
-                                                ✓ Submitted
-                                            </span>
-                                        )}
+                                            // Show Submitted badge if already submitted
+                                            if ((contest.status === "LIVE" || isLiveByTime) && contest.hasUserSubmitted) {
+                                                return (
+                                                    <span style={{
+                                                        padding: "12px 24px",
+                                                        background: "rgba(16, 185, 129, 0.2)",
+                                                        border: "1px solid #10b981",
+                                                        borderRadius: "50px",
+                                                        color: "#10b981",
+                                                        fontWeight: 600
+                                                    }}>
+                                                        ✓ Submitted
+                                                    </span>
+                                                );
+                                            }
 
-                                        {contest.status === "COMPLETED" && (
-                                            <Link href={`/contest/${contest.id}`}>
-                                                <button className="btn-secondary">
-                                                    View Results
-                                                </button>
-                                            </Link>
-                                        )}
+                                            // Show Registered badge for upcoming contests
+                                            if (isUpcomingByTime && contest.isUserRegistered) {
+                                                return (
+                                                    <span style={{
+                                                        padding: "12px 24px",
+                                                        background: "rgba(16, 185, 129, 0.2)",
+                                                        border: "1px solid #10b981",
+                                                        borderRadius: "50px",
+                                                        color: "#10b981",
+                                                        fontWeight: 600
+                                                    }}>
+                                                        ✓ Registered
+                                                    </span>
+                                                );
+                                            }
+
+                                            // Show Register button for upcoming contests
+                                            if (isUpcomingByTime && !contest.isUserRegistered) {
+                                                return (
+                                                    <button
+                                                        className="btn-primary"
+                                                        onClick={() => handleRegister(contest.id)}
+                                                        disabled={registering === contest.id}
+                                                    >
+                                                        {registering === contest.id ? "Registering..." : "Register Now"}
+                                                    </button>
+                                                );
+                                            }
+
+                                            // Show View Results for completed contests
+                                            if (contest.status === "COMPLETED" || isCompletedByTime) {
+                                                return (
+                                                    <Link href={`/contest/${contest.id}`}>
+                                                        <button className="btn-secondary">
+                                                            View Results
+                                                        </button>
+                                                    </Link>
+                                                );
+                                            }
+
+                                            return null;
+                                        })()}
                                     </div>
                                 </div>
                             </div>

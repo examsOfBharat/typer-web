@@ -2,7 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
-import { getContestById, getContestLeaderboard, submitContestTest, startTypingTest } from "@/lib/api";
+import { getContestById, getContestLeaderboard, submitContestTest } from "@/lib/api";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
 
 export default function ContestDetail() {
@@ -31,6 +31,24 @@ export default function ContestDetail() {
 
     const inputRef = useRef(null);
 
+    // Refs to access latest values in callbacks (avoid stale closure)
+    const userInputRef = useRef("");
+    const textRef = useRef("");
+    const startTimeRef = useRef(null);
+
+    // Keep refs synced with state (critical for finishTest to get latest values)
+    useEffect(() => {
+        userInputRef.current = userInput;
+    }, [userInput]);
+
+    useEffect(() => {
+        textRef.current = text;
+    }, [text]);
+
+    useEffect(() => {
+        startTimeRef.current = startTime;
+    }, [startTime]);
+
     useEffect(() => {
         if (isAuthenticated()) {
             setUser(getUser());
@@ -48,7 +66,12 @@ export default function ContestDetail() {
             const userId = user?.userId || null;
             const contestData = await getContestById(contestId, userId);
             setContest(contestData);
-            setTimeLeft(contestData.durationSeconds);
+
+            // Calculate remaining time based on endTime, not durationSeconds
+            const now = new Date().getTime();
+            const endTimeMs = new Date(contestData.endTime).getTime();
+            const remainingSeconds = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
+            setTimeLeft(remainingSeconds);
 
             // Load leaderboard for completed or live contests
             if (contestData.status === "COMPLETED" || contestData.status === "LIVE") {
@@ -57,15 +80,15 @@ export default function ContestDetail() {
             }
 
             // Load text for contest (when LIVE or when start time has passed)
-            const now = new Date().getTime();
             const startTimeMs = new Date(contestData.startTime).getTime();
             const shouldLoadText = (contestData.status === "LIVE" || now >= startTimeMs) &&
                 contestData.isUserRegistered &&
                 !contestData.hasUserSubmitted;
 
-            if (shouldLoadText && !text) {
-                const testData = await startTypingTest(contestData.difficulty, contestData.durationSeconds);
-                setText(testData.text || testData.content);
+            // Use contest-specific typing text from the contest data
+            if (shouldLoadText && !text && contestData.typingText) {
+                setText(contestData.typingText);
+                textRef.current = contestData.typingText;
             }
         } catch (error) {
             console.error("Failed to load contest:", error);
@@ -111,13 +134,14 @@ export default function ContestDetail() {
         return () => clearInterval(interval);
     }, [contest, gameState]);
 
-    // Timer effect
+    // Timer effect - use remaining time until contest ends
     useEffect(() => {
-        if (gameState !== "playing") return;
+        if (gameState !== "playing" || !contest) return;
 
         const timer = setInterval(() => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const remaining = Math.max(0, contest.durationSeconds - elapsed);
+            const now = Date.now();
+            const endTimeMs = new Date(contest.endTime).getTime();
+            const remaining = Math.max(0, (endTimeMs - now) / 1000);
             setTimeLeft(Math.ceil(remaining));
 
             if (remaining <= 0) {
@@ -126,7 +150,7 @@ export default function ContestDetail() {
         }, 100);
 
         return () => clearInterval(timer);
-    }, [gameState, startTime, contest]);
+    }, [gameState, contest]);
 
     // WPM and accuracy calculation
     useEffect(() => {
@@ -148,8 +172,11 @@ export default function ContestDetail() {
 
     const startTest = () => {
         setGameState("playing");
-        setStartTime(Date.now());
+        const now = Date.now();
+        setStartTime(now);
+        startTimeRef.current = now;
         setUserInput("");
+        userInputRef.current = "";
         setTimeout(() => {
             inputRef.current?.focus({ preventScroll: true });
         }, 50);
@@ -159,6 +186,7 @@ export default function ContestDetail() {
         if (gameState !== "playing") return;
         const value = e.target.value;
         setUserInput(value);
+        userInputRef.current = value;
         if (value.length >= text.length) {
             finishTest();
         }
@@ -168,16 +196,23 @@ export default function ContestDetail() {
         if (gameState !== "playing") return;
         setGameState("finished");
 
-        const duration = Math.floor((Date.now() - startTime) / 1000);
+        // Use refs to get latest values (avoid stale closure)
+        const currentUserInput = userInputRef.current;
+        const currentText = textRef.current;
+        const currentStartTime = startTimeRef.current;
+
+        const duration = currentStartTime ? Math.floor((Date.now() - currentStartTime) / 1000) : 0;
         let correct = 0;
         let errors = 0;
-        for (let i = 0; i < userInput.length; i++) {
-            if (userInput[i] === text[i]) correct++;
+        for (let i = 0; i < currentUserInput.length; i++) {
+            if (currentUserInput[i] === currentText[i]) correct++;
             else errors++;
         }
 
-        const finalAccuracy = userInput.length > 0 ? (correct / userInput.length) * 100 : 0;
-        const finalWpm = duration > 0 ? Math.round((userInput.trim().split(/\s+/).length / duration) * 60) : 0;
+        const finalAccuracy = currentUserInput.length > 0 ? (correct / currentUserInput.length) * 100 : 0;
+        const finalWpm = duration > 0 ? Math.round((currentUserInput.trim().split(/\s+/).filter(Boolean).length / duration) * 60) : 0;
+
+        console.log("finishTest metrics:", { currentUserInput: currentUserInput.length, duration, correct, errors, finalWpm, finalAccuracy });
 
         // Submit to contest
         setSubmitting(true);
@@ -187,7 +222,7 @@ export default function ContestDetail() {
                 wpm: finalWpm,
                 accuracy: finalAccuracy,
                 errors,
-                totalChars: userInput.length,
+                totalChars: currentUserInput.length,
                 correctChars: correct,
                 duration,
             });
@@ -308,15 +343,27 @@ export default function ContestDetail() {
                                     <span>👥 {contest.registeredParticipants} participants</span>
                                 </div>
                             </div>
-                            <span style={{
-                                padding: "8px 20px",
-                                borderRadius: "20px",
-                                fontWeight: 600,
-                                background: contest.status === "LIVE" ? "rgba(16, 185, 129, 0.2)" : "rgba(107, 107, 128, 0.2)",
-                                color: contest.status === "LIVE" ? "#10b981" : "#6b6b80",
-                            }}>
-                                {contest.status === "LIVE" ? "🔴 Live" : contest.status}
-                            </span>
+                            {/* Real-time status badge */}
+                            {(() => {
+                                const now = new Date();
+                                const startTimeDate = new Date(contest.startTime);
+                                const endTimeDate = new Date(contest.endTime);
+                                const isLive = now >= startTimeDate && now < endTimeDate;
+                                const isCompleted = now >= endTimeDate;
+                                const displayStatus = isCompleted ? "COMPLETED" : isLive ? "LIVE" : "UPCOMING";
+
+                                return (
+                                    <span style={{
+                                        padding: "8px 20px",
+                                        borderRadius: "20px",
+                                        fontWeight: 600,
+                                        background: displayStatus === "LIVE" ? "rgba(16, 185, 129, 0.2)" : displayStatus === "COMPLETED" ? "rgba(107, 107, 128, 0.3)" : "rgba(245, 158, 11, 0.2)",
+                                        color: displayStatus === "LIVE" ? "#10b981" : displayStatus === "COMPLETED" ? "#6b7280" : "#f59e0b",
+                                    }}>
+                                        {displayStatus === "LIVE" ? "🔴 Live" : displayStatus === "COMPLETED" ? "✅ Completed" : "🕐 Upcoming"}
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -412,9 +459,24 @@ export default function ContestDetail() {
                                         autoCapitalize="off"
                                         spellCheck="false"
                                     />
-                                    <p style={{ textAlign: "center", color: "#6b6b80", marginTop: "16px" }}>
-                                        Click the text area or just start typing...
-                                    </p>
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px", marginTop: "16px" }}>
+                                        <p style={{ color: "#6b6b80", margin: 0 }}>
+                                            Click the text area or just start typing...
+                                        </p>
+                                        <button
+                                            className="btn-secondary"
+                                            onClick={finishTest}
+                                            style={{
+                                                padding: "8px 20px",
+                                                fontSize: "0.9rem",
+                                                background: "rgba(239, 68, 68, 0.1)",
+                                                border: "1px solid #ef4444",
+                                                color: "#ef4444"
+                                            }}
+                                        >
+                                            ⏹️ Submit Early
+                                        </button>
+                                    </div>
                                 </>
                             )}
                         </div>
