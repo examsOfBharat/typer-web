@@ -237,24 +237,29 @@ body {
   animation: gradientMove 15s ease infinite;
 }
 
-/* Character States for Typing */
+/* Character States for Typing - GPU accelerated for smooth performance */
 .char-correct {
   color: var(--neon-green);
+  will-change: color;
 }
 
 .char-incorrect {
   color: #ef4444;
   text-decoration: underline;
+  will-change: color;
 }
 
 .char-current {
-  background: rgba(0, 212, 255, 0.3);
-  border-left: 2px solid var(--neon-cyan);
-  animation: blink 0.5s infinite;
+  border-left: 3px solid #ff6600 !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  margin-left: -1px;
+  will-change: border-left;
 }
 
 .char-pending {
   color: var(--text-muted);
+  will-change: color;
 }
 
 /* Stats Card */
@@ -473,9 +478,9 @@ body {
 
 .test-container {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 32px;
-  max-width: 1400px;
+  grid-template-columns: 1fr 200px;
+  gap: 24px;
+  max-width: 1500px;
   margin: 0 auto;
   padding: 40px;
   min-height: calc(100vh - 80px);
@@ -491,6 +496,7 @@ body {
   height: fit-content;
   position: sticky;
   top: 100px;
+  grid-column: 2;
 }
 
 .panel-section {
@@ -704,6 +710,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  grid-column: 1;
 }
 
 .typing-header {
@@ -774,6 +781,23 @@ body {
   line-height: 2.2;
   letter-spacing: 0.5px;
   user-select: none;
+  position: relative;
+}
+
+/* Butter-smooth animated cursor */
+.smooth-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 2.2em;
+  background: #ff6600;
+  border-radius: 2px;
+  pointer-events: none;
+  transition: transform 30ms ease-out;
+  will-change: transform;
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
+  z-index: 10;
 }
 
 .hidden-input {

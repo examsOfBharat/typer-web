@@ -177,6 +177,8 @@ export default function TypingTest() {
     const [accuracy, setAccuracy] = useState(100);
     const [results, setResults] = useState(null);
     const inputRef = useRef(null);
+    const textContainerRef = useRef(null);
+    const [cursorPosition, setCursorPosition] = useState({ left: 0, top: 0, height: 24 });
     const [userId, setUserId] = useState(null);
 
     // Auth state - initialized on client only to avoid hydration mismatch
@@ -389,24 +391,59 @@ export default function TypingTest() {
         loadText();
     };
 
-    // Optimized text rendering - only render a window around current position for long texts
+    // Update cursor position based on character positions
+    useEffect(() => {
+        if (!textContainerRef.current || gameState !== "playing") return;
+
+        // Use requestAnimationFrame to ensure DOM is rendered
+        const updateCursorPosition = () => {
+            const container = textContainerRef.current;
+            if (!container) return;
+
+            const spans = container.querySelectorAll('span');
+            const currentPos = userInput.length;
+
+            if (spans.length === 0) return;
+
+            // Get the target span (current character position or first character if at start)
+            const targetSpan = spans[Math.min(currentPos, spans.length - 1)];
+            if (!targetSpan) return;
+
+            // Use offsetLeft/offsetTop for correct positioning relative to offset parent
+            let left = targetSpan.offsetLeft;
+            let top = targetSpan.offsetTop;
+
+            // If we've typed all characters, position cursor after the last character
+            if (currentPos >= spans.length) {
+                left += targetSpan.offsetWidth;
+            }
+
+            // Get character height dynamically
+            const height = targetSpan.offsetHeight;
+
+            setCursorPosition({ left, top, height });
+        };
+
+        // Run immediately and also after a frame for initial load
+        requestAnimationFrame(updateCursorPosition);
+    }, [userInput.length, gameState, text]);
+
+    // Optimized text rendering - NO char-current class, cursor is separate element
     const WINDOW_SIZE = 500; // Characters to render before and after current position
 
     const renderedText = useMemo(() => {
         const currentPos = userInput.length;
         const textLength = text.length;
 
-        // For short texts, render everything
+        // For short texts, render everything (no char-current, just correct/incorrect/pending)
         if (textLength <= WINDOW_SIZE * 2) {
             return text.split("").map((char, index) => {
                 let className = "char-pending";
                 if (index < currentPos) {
                     className = userInput[index] === char ? "char-correct" : "char-incorrect";
-                } else if (index === currentPos) {
-                    className = "char-current";
                 }
                 return (
-                    <span key={index} className={className}>
+                    <span key={index} className={className} data-index={index}>
                         {char}
                     </span>
                 );
@@ -419,17 +456,15 @@ export default function TypingTest() {
 
         const elements = [];
 
-        // Render the visible window (no ellipsis to avoid alignment shifts)
+        // Render the visible window
         for (let index = startIndex; index < endIndex; index++) {
             const char = text[index];
             let className = "char-pending";
             if (index < currentPos) {
                 className = userInput[index] === char ? "char-correct" : "char-incorrect";
-            } else if (index === currentPos) {
-                className = "char-current";
             }
             elements.push(
-                <span key={index} className={className}>
+                <span key={index} className={className} data-index={index}>
                     {char}
                 </span>
             );
@@ -605,8 +640,28 @@ export default function TypingTest() {
                             className="typing-arena-new"
                             onClick={() => gameState === "playing" && inputRef.current?.focus({ preventScroll: true })}
                         >
-                            <div className="typing-text">
+                            <div className="typing-text" ref={textContainerRef}>
                                 {renderedText}
+                                {/* Smooth animated cursor - Monkeytype style */}
+                                {gameState === "playing" && (
+                                    <div
+                                        id="caret"
+                                        style={{
+                                            position: 'absolute',
+                                            left: `${cursorPosition.left}px`,
+                                            top: `${cursorPosition.top}px`,
+                                            width: '3px',
+                                            height: `${cursorPosition.height}px`,
+                                            background: '#ff6600',
+                                            borderRadius: '2px',
+                                            pointerEvents: 'none',
+                                            transition: 'left 0.1s linear, top 0.1s linear',
+                                            willChange: 'left, top',
+                                            boxShadow: '0 0 8px rgba(255, 102, 0, 0.6)',
+                                            zIndex: 10,
+                                        }}
+                                    />
+                                )}
                             </div>
                         </div>
                         {/* Hidden input moved outside arena to prevent scroll issues */}
