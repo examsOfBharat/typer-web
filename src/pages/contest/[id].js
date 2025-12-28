@@ -553,7 +553,12 @@ export default function ContestDetail() {
                                                     {idx === 2 && "🥉"}
                                                     {idx > 2 && `#${entry.rank || idx + 1}`}
                                                 </td>
-                                                <td style={{ padding: "16px" }}>{entry.displayName}</td>
+                                                <td style={{ padding: "16px" }}>
+                                                    {entry.displayName}
+                                                    {entry.hasGiftReward && (
+                                                        <span title="Gift Card Winner!" style={{ marginLeft: "8px" }}>🎁</span>
+                                                    )}
+                                                </td>
                                                 <td style={{ padding: "16px", textAlign: "right", color: "#00d4ff", fontWeight: 600 }}>{entry.wpm}</td>
                                                 <td style={{ padding: "16px", textAlign: "right", color: "#a855f7" }}>{entry.accuracy?.toFixed(1)}%</td>
                                                 <td style={{ padding: "16px", textAlign: "right", color: "#10b981", fontWeight: 600 }}>{entry.performanceScore}</td>

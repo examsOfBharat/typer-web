@@ -2,11 +2,12 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import { getContests, registerForContest } from "@/lib/api";
+import { getContests, registerForContest, getCompletedContests } from "@/lib/api";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
 
 export default function Contests() {
     const [contests, setContests] = useState([]);
+    const [completedContests, setCompletedContests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const [registering, setRegistering] = useState(null);
@@ -22,8 +23,12 @@ export default function Contests() {
     const loadContests = async () => {
         try {
             const userId = isAuthenticated() ? getUser()?.userId : null;
-            const data = await getContests(userId);
-            setContests(data);
+            const [activeContests, pastContests] = await Promise.all([
+                getContests(userId),
+                getCompletedContests()
+            ]);
+            setContests(activeContests);
+            setCompletedContests(pastContests);
         } catch (error) {
             console.error("Failed to load contests:", error);
         } finally {
@@ -367,6 +372,145 @@ export default function Contests() {
                             </div>
                         ))}
                     </div>
+
+                    {/* Past Contests Section */}
+                    {completedContests.length > 0 && (
+                        <div style={{ marginTop: "60px" }}>
+                            <h2 style={{
+                                fontSize: "1.8rem",
+                                fontWeight: 700,
+                                marginBottom: "24px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px"
+                            }}>
+                                <span style={{
+                                    background: "linear-gradient(135deg, #f59e0b, #ec4899)",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                }}>
+                                    📜 Past Contests
+                                </span>
+                            </h2>
+
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+                                gap: "20px"
+                            }}>
+                                {completedContests.map((contest) => (
+                                    <div
+                                        key={contest.id}
+                                        className="glass-card"
+                                        style={{
+                                            padding: "24px",
+                                            borderLeft: "4px solid #6b7280",
+                                            transition: "all 0.3s ease",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = "#f59e0b";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = "#6b7280";
+                                        }}
+                                    >
+                                        {/* Contest Header */}
+                                        <div style={{ marginBottom: "16px" }}>
+                                            <div style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                marginBottom: "8px"
+                                            }}>
+                                                <h3 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0 }}>
+                                                    {contest.title}
+                                                </h3>
+                                                <span style={{
+                                                    padding: "4px 12px",
+                                                    borderRadius: "20px",
+                                                    fontSize: "0.75rem",
+                                                    fontWeight: 600,
+                                                    background: "rgba(107, 114, 128, 0.2)",
+                                                    color: "#6b7280",
+                                                }}>
+                                                    ✅ Completed
+                                                </span>
+                                            </div>
+                                            <div style={{
+                                                display: "flex",
+                                                gap: "16px",
+                                                fontSize: "0.85rem",
+                                                color: "#6b6b80",
+                                            }}>
+                                                <span>⚡ {contest.difficulty}</span>
+                                                <span>⏱ {Math.floor(contest.durationSeconds / 60)} min</span>
+                                                <span>👥 {contest.participantCount} participants</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Winner Info */}
+                                        {contest.winnerName && (
+                                            <div style={{
+                                                padding: "16px",
+                                                background: "linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(245, 158, 11, 0.15))",
+                                                borderRadius: "12px",
+                                                marginBottom: "16px",
+                                                border: "1px solid rgba(255, 215, 0, 0.2)"
+                                            }}>
+                                                <div style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "12px",
+                                                    marginBottom: "8px"
+                                                }}>
+                                                    <span style={{ fontSize: "1.5rem" }}>🥇</span>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, color: "#ffd700" }}>
+                                                            {contest.winnerName}
+                                                        </div>
+                                                        <div style={{ fontSize: "0.8rem", color: "#b8b8cc" }}>
+                                                            Champion
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    display: "flex",
+                                                    gap: "24px",
+                                                    fontSize: "0.9rem",
+                                                }}>
+                                                    <span>
+                                                        <strong style={{ color: "#00d4ff" }}>{contest.winnerWpm}</strong> WPM
+                                                    </span>
+                                                    <span>
+                                                        <strong style={{ color: "#10b981" }}>{contest.winnerAccuracy?.toFixed(1)}%</strong> accuracy
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Footer */}
+                                        <div style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                        }}>
+                                            <span style={{ fontSize: "0.85rem", color: "#6b6b80" }}>
+                                                📅 {new Date(contest.endTime).toLocaleDateString()}
+                                            </span>
+                                            <Link href={`/contest/${contest.id}`}>
+                                                <button className="btn-secondary" style={{
+                                                    padding: "8px 16px",
+                                                    fontSize: "0.85rem"
+                                                }}>
+                                                    View Leaderboard
+                                                </button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

@@ -261,3 +261,12 @@ export async function getUserRewards(userId) {
   return apiRequest(`/typer/user/rewards?userId=${encodeURIComponent(userId)}`);
 }
 
+/**
+ * Get last 5 completed contests for home page
+ * @returns {Promise<Array>}
+ */
+export async function getCompletedContests() {
+  return apiRequest('/typer/contests/completed');
+}
+
+

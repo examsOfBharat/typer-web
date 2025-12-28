@@ -2,7 +2,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
-import { getContests } from "@/lib/api";
+import { getContests, getCompletedContests } from "@/lib/api";
+
 
 export default function Home() {
   const [typingText, setTypingText] = useState("");
@@ -10,6 +11,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [registeredContests, setRegisteredContests] = useState([]);
+  const [completedContests, setCompletedContests] = useState([]);
   const fullText = "Master Your Typing Skills";
 
   // Check auth status on mount
@@ -41,6 +43,19 @@ export default function Home() {
     };
     fetchRegisteredContests();
   }, [isLoggedIn, user]);
+
+  // Fetch completed contests on mount (for everyone)
+  useEffect(() => {
+    const fetchCompletedContests = async () => {
+      try {
+        const contests = await getCompletedContests();
+        setCompletedContests(contests);
+      } catch (error) {
+        console.error('Failed to fetch completed contests:', error);
+      }
+    };
+    fetchCompletedContests();
+  }, []);
 
   // Typing animation effect
   useEffect(() => {
@@ -654,6 +669,178 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* Past Contests Section */}
+        {completedContests.length > 0 && (
+          <section
+            style={{
+              padding: "80px 20px",
+              maxWidth: "1200px",
+              margin: "0 auto",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "2rem",
+                fontWeight: 700,
+                textAlign: "center",
+                marginBottom: "16px",
+              }}
+            >
+              🏆{" "}
+              <span
+                style={{
+                  background:
+                    "linear-gradient(135deg, #f59e0b, #ec4899)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Past Contests
+              </span>
+            </h2>
+            <p
+              style={{
+                color: "#b8b8cc",
+                textAlign: "center",
+                marginBottom: "40px",
+              }}
+            >
+              See how top typists performed in recent competitions
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {completedContests.map((contest) => (
+                <div
+                  key={contest.id}
+                  className="glass-card"
+                  style={{
+                    padding: "24px",
+                    borderLeft: "4px solid #f59e0b",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.borderColor = "#ec4899";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.borderColor = "#f59e0b";
+                  }}
+                >
+                  {/* Contest Header */}
+                  <div style={{ marginBottom: "16px" }}>
+                    <h3
+                      style={{
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                        marginBottom: "8px",
+                      }}
+                    >
+                      {contest.title}
+                    </h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        fontSize: "0.85rem",
+                        color: "#6b6b80",
+                      }}
+                    >
+                      <span>⚡ {contest.difficulty}</span>
+                      <span>⏱ {Math.floor(contest.durationSeconds / 60)} min</span>
+                      <span>👥 {contest.participantCount} participants</span>
+                    </div>
+                  </div>
+
+                  {/* Winner Info */}
+                  {contest.winnerName && (
+                    <div
+                      style={{
+                        padding: "16px",
+                        background: "rgba(245, 158, 11, 0.1)",
+                        borderRadius: "12px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <span style={{ fontSize: "1.5rem" }}>🥇</span>
+                        <div>
+                          <div style={{ fontWeight: 600, color: "#f59e0b" }}>
+                            {contest.winnerName}
+                          </div>
+                          <div style={{ fontSize: "0.85rem", color: "#b8b8cc" }}>
+                            Champion
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "20px",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        <span>
+                          <strong style={{ color: "#00d4ff" }}>{contest.winnerWpm}</strong> WPM
+                        </span>
+                        <span>
+                          <strong style={{ color: "#10b981" }}>{contest.winnerAccuracy?.toFixed(1)}%</strong> accuracy
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contest Date & Leaderboard Link */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: "0.85rem", color: "#6b6b80" }}>
+                      📅 {new Date(contest.endTime).toLocaleDateString()}
+                    </span>
+                    <Link href={`/contest/${contest.id}`}>
+                      <button
+                        className="btn-secondary"
+                        style={{
+                          padding: "8px 16px",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        View Leaderboard
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* View All Link */}
+            <div style={{ textAlign: "center", marginTop: "32px" }}>
+              <Link href="/contest">
+                <button className="btn-secondary">
+                  View All Contests →
+                </button>
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* CTA Section */}
         <section

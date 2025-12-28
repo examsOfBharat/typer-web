@@ -14,6 +14,8 @@ export default function Dashboard() {
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [claimedRewards, setClaimedRewards] = useState({}); // { rewardId: { voucherCode, voucherPin } }
+    const [claimingReward, setClaimingReward] = useState(null); // rewardId being claimed
 
     useEffect(() => {
         setMounted(true);
@@ -50,6 +52,41 @@ export default function Dashboard() {
         }
     };
 
+    const handleClaimReward = async (rewardId) => {
+        try {
+            setClaimingReward(rewardId);
+            const response = await fetch(
+                `${API_BASE_URL}/typer/rewards/${rewardId}/claim?userId=${user.userId}`,
+                { method: 'POST' }
+            );
+            if (!response.ok) {
+                throw new Error('Failed to claim reward');
+            }
+            const data = await response.json();
+            if (data.success) {
+                setClaimedRewards(prev => ({
+                    ...prev,
+                    [rewardId]: {
+                        voucherCode: data.voucherCode,
+                        voucherPin: data.voucherPin
+                    }
+                }));
+                // Update the reward status in dashboard state
+                setDashboard(prev => ({
+                    ...prev,
+                    earnedRewards: prev.earnedRewards.map(r =>
+                        r.id === rewardId ? { ...r, status: 'CLAIMED' } : r
+                    )
+                }));
+            }
+        } catch (err) {
+            console.error('Claim reward error:', err);
+            alert('Failed to claim reward. Please try again.');
+        } finally {
+            setClaimingReward(null);
+        }
+    };
+
     const handleLogout = () => {
         logout();
         router.push('/');
@@ -80,6 +117,7 @@ export default function Dashboard() {
                     <div className="nav-links">
                         <Link href="/" className="nav-link">Home</Link>
                         <Link href="/test" className="nav-link">Practice</Link>
+                        <Link href="/contest" className="nav-link">Contests</Link>
                         <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
                         <Link href="/dashboard" className="nav-link active">Dashboard</Link>
                         {user && (
@@ -323,6 +361,143 @@ export default function Dashboard() {
                                     </p>
                                 )}
                             </section>
+
+                            {/* Earned Rewards Section */}
+                            {dashboard.earnedRewards && dashboard.earnedRewards.length > 0 && (
+                                <section style={{
+                                    marginTop: "32px",
+                                    padding: "24px",
+                                    background: "linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(245, 158, 11, 0.1))",
+                                    borderRadius: "16px",
+                                    border: "1px solid rgba(255, 215, 0, 0.3)"
+                                }}>
+                                    <h3 style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+                                        🎁 Earned Rewards
+                                        <span style={{
+                                            marginLeft: "auto",
+                                            padding: "4px 12px",
+                                            background: "rgba(255, 215, 0, 0.2)",
+                                            borderRadius: "20px",
+                                            color: "#fbbf24",
+                                            fontSize: "0.9rem"
+                                        }}>
+                                            {dashboard.earnedRewards.length} Gift Card{dashboard.earnedRewards.length > 1 ? 's' : ''}
+                                        </span>
+                                    </h3>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                        {dashboard.earnedRewards.map((reward, index) => (
+                                            <div key={reward.id || index} style={{
+                                                padding: "20px",
+                                                background: "rgba(0, 0, 0, 0.3)",
+                                                borderRadius: "12px",
+                                                border: "1px solid rgba(255, 215, 0, 0.2)"
+                                            }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                                                    <div>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                                            <span style={{ fontSize: "1.2rem" }}>
+                                                                {reward.rank === 1 ? "🥇" : reward.rank === 2 ? "🥈" : "🥉"}
+                                                            </span>
+                                                            <span style={{ fontWeight: "600", color: "#fbbf24" }}>
+                                                                #{reward.rank} Place
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ color: "#b8b8cc", fontSize: "0.95rem" }}>
+                                                            {reward.contestTitle}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ textAlign: "right" }}>
+                                                        <div style={{ fontWeight: "700", fontSize: "1.25rem", color: "#10b981" }}>
+                                                            {reward.rewardType && `${reward.rewardType} `}
+                                                            {reward.rewardAmount && `₹${reward.rewardAmount}`}
+                                                        </div>
+                                                        <div style={{ color: "#6b6b80", fontSize: "0.8rem", marginTop: "4px" }}>
+                                                            {reward.status === "ACTIVE" && !claimedRewards[reward.id] ? "✅ Ready to claim" :
+                                                                reward.status === "CLAIMED" || claimedRewards[reward.id] ? "📦 Claimed" : "⏳ Pending"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Show Claim Button for ACTIVE rewards that haven't been claimed yet */}
+                                                {reward.status === "ACTIVE" && !claimedRewards[reward.id] && (
+                                                    <div style={{ marginTop: "16px" }}>
+                                                        <div style={{
+                                                            padding: "12px",
+                                                            background: "rgba(0, 0, 0, 0.3)",
+                                                            borderRadius: "8px",
+                                                            border: "1px dashed rgba(255, 215, 0, 0.4)",
+                                                            marginBottom: "12px"
+                                                        }}>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                                                                <div>
+                                                                    <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginBottom: "4px" }}>Voucher Code</div>
+                                                                    <div style={{ fontFamily: "monospace", fontWeight: "600", color: "#6b6b80" }}>
+                                                                        ••••••••••••
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginBottom: "4px" }}>PIN</div>
+                                                                    <div style={{ fontFamily: "monospace", fontWeight: "600", color: "#6b6b80" }}>
+                                                                        ••••
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleClaimReward(reward.id)}
+                                                            disabled={claimingReward === reward.id}
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 24px",
+                                                                background: claimingReward === reward.id
+                                                                    ? "rgba(255, 215, 0, 0.2)"
+                                                                    : "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                                                                border: "none",
+                                                                borderRadius: "8px",
+                                                                color: claimingReward === reward.id ? "#fbbf24" : "#000",
+                                                                fontSize: "1rem",
+                                                                fontWeight: "700",
+                                                                cursor: claimingReward === reward.id ? "not-allowed" : "pointer",
+                                                                transition: "all 0.3s ease"
+                                                            }}
+                                                        >
+                                                            {claimingReward === reward.id ? "🔄 Claiming..." : "🎁 Claim Gift Card"}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Show revealed voucher details for CLAIMED status or after claiming */}
+                                                {(reward.status === "CLAIMED" || claimedRewards[reward.id]) && (
+                                                    <div style={{
+                                                        marginTop: "16px",
+                                                        padding: "12px",
+                                                        background: "rgba(16, 185, 129, 0.1)",
+                                                        borderRadius: "8px",
+                                                        border: "1px solid rgba(16, 185, 129, 0.3)"
+                                                    }}>
+                                                        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                                                            <div>
+                                                                <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginBottom: "4px" }}>Voucher Code</div>
+                                                                <div style={{ fontFamily: "monospace", fontWeight: "600", color: "#10b981" }}>
+                                                                    {claimedRewards[reward.id]?.voucherCode || reward.voucherCode}
+                                                                </div>
+                                                            </div>
+                                                            {(claimedRewards[reward.id]?.voucherPin || reward.voucherPin) && (
+                                                                <div>
+                                                                    <div style={{ color: "#6b6b80", fontSize: "0.75rem", marginBottom: "4px" }}>PIN</div>
+                                                                    <div style={{ fontFamily: "monospace", fontWeight: "600", color: "#10b981" }}>
+                                                                        {claimedRewards[reward.id]?.voucherPin || reward.voucherPin}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* Weekly Progress - Line Chart */}
                             {dashboard.weeklyProgress && dashboard.weeklyProgress.length > 0 && (
