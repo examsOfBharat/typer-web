@@ -66,61 +66,19 @@ export default function Leaderboard() {
                 <link rel="canonical" href="https://typer.examsofbharat.com/leaderboard" />
             </Head>
 
-            <div
-                style={{
-                    minHeight: "100vh",
-                    background:
-                        "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%)",
-                    padding: "100px 20px 40px",
-                }}
-            >
+            <div className="test-page">
                 {/* Navigation */}
-                <nav
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        padding: "20px 40px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        background: "rgba(10, 10, 15, 0.9)",
-                        backdropFilter: "blur(20px)",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                        zIndex: 100,
-                    }}
-                >
-                    <Link
-                        href="/"
-                        style={{
-                            fontSize: "1.5rem",
-                            fontWeight: 700,
-                            textDecoration: "none",
-                            background: "linear-gradient(135deg, #00d4ff, #a855f7, #ec4899)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                        }}
-                    >
+                <nav className="test-nav">
+                    <Link href="/" className="logo">
                         TyperPro
                     </Link>
-                    <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-                        <Link href="/" style={{ textDecoration: "none", color: "#b8b8cc" }}>
-                            Home
-                        </Link>
-                        <Link href="/test" style={{ textDecoration: "none", color: "#b8b8cc" }}>
-                            Practice
-                        </Link>
-                        <Link href="/contest" style={{ textDecoration: "none", color: "#b8b8cc" }}>
-                            Contests
-                        </Link>
-                        <Link href="/leaderboard" style={{ textDecoration: "none", color: "#00d4ff" }}>
-                            Leaderboard
-                        </Link>
+                    <div className="nav-links">
+                        <Link href="/">Home</Link>
+                        <Link href="/test">Practice</Link>
+                        <Link href="/contest">Contests</Link>
+                        <Link href="/leaderboard" className="active">Leaderboard</Link>
                         {isLoggedIn && user && (
-                            <Link href="/dashboard" style={{ textDecoration: "none", color: "#b8b8cc" }}>
-                                Dashboard
-                            </Link>
+                            <Link href="/dashboard">Dashboard</Link>
                         )}
                         {isLoggedIn && user ? (
                             <div className="user-badge">
@@ -136,7 +94,7 @@ export default function Leaderboard() {
                     </div>
                 </nav>
 
-                <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+                <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
                     {/* Page Header */}
                     <div style={{ textAlign: "center", marginBottom: "40px" }}>
                         <h1

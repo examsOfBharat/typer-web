@@ -107,19 +107,18 @@ export default function Dashboard() {
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
 
-            <div className="dashboard-container">
+            <div className="test-page">
                 {/* Navigation */}
-                <nav className="dashboard-nav">
-                    <Link href="/" className="nav-logo">
-                        <span className="logo-icon">⌨️</span>
-                        <span className="logo-text">TyperPro</span>
+                <nav className="test-nav">
+                    <Link href="/" className="logo">
+                        TyperPro
                     </Link>
                     <div className="nav-links">
-                        <Link href="/" className="nav-link">Home</Link>
-                        <Link href="/test" className="nav-link">Practice</Link>
-                        <Link href="/contest" className="nav-link">Contests</Link>
-                        <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-                        <Link href="/dashboard" className="nav-link active">Dashboard</Link>
+                        <Link href="/">Home</Link>
+                        <Link href="/test">Practice</Link>
+                        <Link href="/contest">Contests</Link>
+                        <Link href="/leaderboard">Leaderboard</Link>
+                        <Link href="/dashboard" className="active">Dashboard</Link>
                         {user && (
                             <div className="user-badge">
                                 <span className="avatar">{user.displayName?.charAt(0).toUpperCase()}</span>

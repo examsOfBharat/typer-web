@@ -210,79 +210,19 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div
-        style={{
-          minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%)",
-        }}
-      >
+      <div className="test-page" style={{ paddingTop: 0 }}>
         {/* Navigation */}
-        <nav
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            padding: "20px 40px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            background: "rgba(10, 10, 15, 0.8)",
-            backdropFilter: "blur(20px)",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              background:
-                "linear-gradient(135deg, #00d4ff, #a855f7, #ec4899)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
+        <nav className="test-nav">
+          <Link href="/" className="logo">
             TyperPro
-          </div>
-          <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-            <Link
-              href="/"
-              className="nav-link active"
-              style={{ textDecoration: "none", color: "#00d4ff" }}
-            >
-              Home
-            </Link>
-            <Link
-              href="/test"
-              className="nav-link"
-              style={{ textDecoration: "none", color: "#b8b8cc" }}
-            >
-              Practice
-            </Link>
-            <Link
-              href="/leaderboard"
-              className="nav-link"
-              style={{ textDecoration: "none", color: "#b8b8cc" }}
-            >
-              Leaderboard
-            </Link>
-            <Link
-              href="/contest"
-              className="nav-link"
-              style={{ textDecoration: "none", color: "#b8b8cc" }}
-            >
-              Contests
-            </Link>
+          </Link>
+          <div className="nav-links">
+            <Link href="/" className="active">Home</Link>
+            <Link href="/test">Practice</Link>
+            <Link href="/contest">Contests</Link>
+            <Link href="/leaderboard">Leaderboard</Link>
             {isLoggedIn && user && (
-              <Link
-                href="/dashboard"
-                className="nav-link"
-                style={{ textDecoration: "none", color: "#b8b8cc" }}
-              >
-                Dashboard
-              </Link>
+              <Link href="/dashboard">Dashboard</Link>
             )}
             {isLoggedIn && user ? (
               <div className="user-badge">
@@ -888,32 +828,6 @@ export default function Home() {
             </Link>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer
-          style={{
-            padding: "40px 20px",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 700,
-              marginBottom: "16px",
-              background:
-                "linear-gradient(135deg, #00d4ff, #a855f7)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            TyperPro
-          </div>
-          <p style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
-            © 2024 TyperPro by ExamsOfBharat. All rights reserved.
-          </p>
-        </footer>
 
         <style jsx>{`
           @keyframes blink {

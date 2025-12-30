@@ -98,6 +98,7 @@ export default function LoginPage() {
                     <div className="nav-links">
                         <Link href="/">Home</Link>
                         <Link href="/test">Practice</Link>
+                        <Link href="/contest">Contests</Link>
                         <Link href="/leaderboard">Leaderboard</Link>
                     </div>
                 </nav>

@@ -5,7 +5,7 @@ export default function Footer() {
         <footer className="site-footer">
             <div className="footer-content">
                 <div className="footer-brand">
-                    <span className="footer-logo">⌨️ TyperPro</span>
+                    <span className="footer-logo">⌨ TyperPro</span>
                     <p className="footer-tagline">Master your typing skills</p>
                 </div>
                 <div className="footer-links">

@@ -314,6 +314,7 @@ export default function ContestDetail() {
                     <Link href="/" className="logo">TyperPro</Link>
                     <div className="nav-links">
                         <Link href="/">Home</Link>
+                        <Link href="/test">Practice</Link>
                         <Link href="/contest">Contests</Link>
                         <Link href="/leaderboard">Leaderboard</Link>
                         {user && <Link href="/dashboard">Dashboard</Link>}

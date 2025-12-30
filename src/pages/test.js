@@ -277,7 +277,9 @@ export default function TypingTest() {
         return () => clearInterval(timer);
     }, [gameState]);
 
+    // Real-time WPM/accuracy calculation
     useEffect(() => {
+
         if (gameState !== "playing" || !startTime) return;
 
         const elapsedMinutes = (Date.now() - startTime) / 60000;
@@ -356,7 +358,7 @@ export default function TypingTest() {
         // Save results to backend for logged-in users
         if (isLoggedIn && user?.userId) {
             try {
-                await submitTypingTest({
+                const response = await submitTypingTest({
                     userId: user.userId,
                     difficulty: difficulty,
                     duration: testResults.time,
@@ -366,7 +368,15 @@ export default function TypingTest() {
                     wpm: testResults.wpm,
                     accuracy: testResults.accuracy,
                 });
-                console.log('Test result saved successfully');
+                console.log('Test result saved successfully', response);
+                // Update results with performanceScore and performancePoints from API response
+                if (response) {
+                    setResults(prev => ({
+                        ...prev,
+                        performanceScore: response.performanceScore,
+                        performancePoints: response.performancePoints,
+                    }));
+                }
             } catch (error) {
                 console.error('Failed to save test result:', error);
             }
@@ -474,9 +484,9 @@ export default function TypingTest() {
     }, [text, userInput]);
 
     const getAccuracyColor = () => {
-        if (accuracy >= 90) return "#10b981";
-        if (accuracy >= 70) return "#f59e0b";
-        return "#ef4444";
+        if (accuracy >= 90) return "#a7f3d0";  // Very light mint
+        if (accuracy >= 70) return "#fef08a";  // Very light yellow
+        return "#fecaca";  // Very light coral
     };
 
     return (
@@ -539,6 +549,7 @@ export default function TypingTest() {
                     <div className="nav-links">
                         <Link href="/">Home</Link>
                         <Link href="/test" className="active">Practice</Link>
+                        <Link href="/contest">Contests</Link>
                         <Link href="/leaderboard">Leaderboard</Link>
                         {mounted && isLoggedIn && user && (
                             <Link href="/dashboard">Dashboard</Link>
@@ -558,55 +569,6 @@ export default function TypingTest() {
                 </nav>
 
                 <div className="test-container">
-                    {/* Side Panel */}
-                    <aside className="side-panel">
-                        <div className="panel-section">
-                            <CircularTimer
-                                timeLeft={timeLeft}
-                                totalTime={selectedTime}
-                                isPlaying={gameState === "playing"}
-                            />
-                        </div>
-
-                        <div className="panel-section stats-section">
-                            <StatDisplay
-                                value={wpm}
-                                label="Words Per Minute"
-                                icon="⚡"
-                                color="#a855f7"
-                            />
-                            <StatDisplay
-                                value={`${accuracy}%`}
-                                label="Accuracy"
-                                color={getAccuracyColor()}
-                                showRing={true}
-                                percentage={accuracy}
-                            />
-                        </div>
-
-                        <div className="panel-divider"></div>
-
-                        <div className="panel-section settings-section">
-                            <h3 className="settings-title">⚙️ Settings</h3>
-                            <CustomDropdown
-                                options={DIFFICULTIES}
-                                value={difficulty}
-                                onChange={setDifficulty}
-                                label="Difficulty"
-                                icon="🎯"
-                                disabled={gameState === "playing"}
-                            />
-                            <CustomDropdown
-                                options={TIME_OPTIONS}
-                                value={selectedTime}
-                                onChange={setSelectedTime}
-                                label="Duration"
-                                icon="⏱️"
-                                disabled={gameState === "playing"}
-                            />
-                        </div>
-                    </aside>
-
                     {/* Main Content */}
                     <main className="main-content">
                         <div className="typing-header">
@@ -685,6 +647,55 @@ export default function TypingTest() {
                             </p>
                         )}
                     </main>
+
+                    {/* Side Panel */}
+                    <aside className="side-panel">
+                        <div className="panel-section">
+                            <CircularTimer
+                                timeLeft={timeLeft}
+                                totalTime={selectedTime}
+                                isPlaying={gameState === "playing"}
+                            />
+                        </div>
+
+                        <div className="panel-section stats-section">
+                            <StatDisplay
+                                value={wpm}
+                                label="Words Per Minute"
+                                icon="⚡"
+                                color="#a855f7"
+                            />
+                            <StatDisplay
+                                value={`${accuracy}%`}
+                                label="Accuracy"
+                                color={getAccuracyColor()}
+                                showRing={true}
+                                percentage={accuracy}
+                            />
+                        </div>
+
+                        <div className="panel-divider"></div>
+
+                        <div className="panel-section settings-section">
+                            <h3 className="settings-title">⚙️ Settings</h3>
+                            <CustomDropdown
+                                options={DIFFICULTIES}
+                                value={difficulty}
+                                onChange={setDifficulty}
+                                label="Difficulty"
+                                icon="🎯"
+                                disabled={gameState === "playing"}
+                            />
+                            <CustomDropdown
+                                options={TIME_OPTIONS}
+                                value={selectedTime}
+                                onChange={setSelectedTime}
+                                label="Duration"
+                                icon="⏱️"
+                                disabled={gameState === "playing"}
+                            />
+                        </div>
+                    </aside>
                 </div>
 
                 {/* Results Modal */}
@@ -704,6 +715,34 @@ export default function TypingTest() {
                                     <div className="result-label">Accuracy</div>
                                 </div>
                             </div>
+
+                            {/* Performance Score and Points */}
+                            {(results.performanceScore !== undefined || results.performancePoints !== undefined) && (
+                                <div className="results-grid" style={{ marginTop: '16px' }}>
+                                    {results.performanceScore !== undefined && (
+                                        <div className="result-card" style={{
+                                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(34, 197, 94, 0.1))',
+                                            border: '1px solid rgba(16, 185, 129, 0.3)'
+                                        }}>
+                                            <div className="result-value" style={{ color: '#10b981' }}>
+                                                {typeof results.performanceScore === 'number' ? results.performanceScore.toFixed(1) : results.performanceScore}
+                                            </div>
+                                            <div className="result-label">Score</div>
+                                        </div>
+                                    )}
+                                    {results.performancePoints !== undefined && (
+                                        <div className="result-card" style={{
+                                            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.1))',
+                                            border: '1px solid rgba(168, 85, 247, 0.3)'
+                                        }}>
+                                            <div className="result-value" style={{ color: '#a855f7' }}>
+                                                +{typeof results.performancePoints === 'number' ? results.performancePoints.toFixed(2) : results.performancePoints}
+                                            </div>
+                                            <div className="result-label">Points Earned</div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="results-details">
                                 <div><span>Time:</span> {results.time}s</div>
