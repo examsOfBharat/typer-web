@@ -177,6 +177,8 @@ export default function TypingTest() {
     const [accuracy, setAccuracy] = useState(100);
     const [results, setResults] = useState(null);
     const inputRef = useRef(null);
+    const textContainerRef = useRef(null);
+    const [cursorPosition, setCursorPosition] = useState({ left: 0, top: 0, height: 24 });
     const [userId, setUserId] = useState(null);
 
     // Auth state - initialized on client only to avoid hydration mismatch
@@ -275,7 +277,9 @@ export default function TypingTest() {
         return () => clearInterval(timer);
     }, [gameState]);
 
+    // Real-time WPM/accuracy calculation
     useEffect(() => {
+
         if (gameState !== "playing" || !startTime) return;
 
         const elapsedMinutes = (Date.now() - startTime) / 60000;
@@ -354,7 +358,7 @@ export default function TypingTest() {
         // Save results to backend for logged-in users
         if (isLoggedIn && user?.userId) {
             try {
-                await submitTypingTest({
+                const response = await submitTypingTest({
                     userId: user.userId,
                     difficulty: difficulty,
                     duration: testResults.time,
@@ -364,7 +368,15 @@ export default function TypingTest() {
                     wpm: testResults.wpm,
                     accuracy: testResults.accuracy,
                 });
-                console.log('Test result saved successfully');
+                console.log('Test result saved successfully', response);
+                // Update results with performanceScore and performancePoints from API response
+                if (response) {
+                    setResults(prev => ({
+                        ...prev,
+                        performanceScore: response.performanceScore,
+                        performancePoints: response.performancePoints,
+                    }));
+                }
             } catch (error) {
                 console.error('Failed to save test result:', error);
             }
@@ -389,24 +401,59 @@ export default function TypingTest() {
         loadText();
     };
 
-    // Optimized text rendering - only render a window around current position for long texts
+    // Update cursor position based on character positions
+    useEffect(() => {
+        if (!textContainerRef.current || gameState !== "playing") return;
+
+        // Use requestAnimationFrame to ensure DOM is rendered
+        const updateCursorPosition = () => {
+            const container = textContainerRef.current;
+            if (!container) return;
+
+            const spans = container.querySelectorAll('span');
+            const currentPos = userInput.length;
+
+            if (spans.length === 0) return;
+
+            // Get the target span (current character position or first character if at start)
+            const targetSpan = spans[Math.min(currentPos, spans.length - 1)];
+            if (!targetSpan) return;
+
+            // Use offsetLeft/offsetTop for correct positioning relative to offset parent
+            let left = targetSpan.offsetLeft;
+            let top = targetSpan.offsetTop;
+
+            // If we've typed all characters, position cursor after the last character
+            if (currentPos >= spans.length) {
+                left += targetSpan.offsetWidth;
+            }
+
+            // Get character height dynamically
+            const height = targetSpan.offsetHeight;
+
+            setCursorPosition({ left, top, height });
+        };
+
+        // Run immediately and also after a frame for initial load
+        requestAnimationFrame(updateCursorPosition);
+    }, [userInput.length, gameState, text]);
+
+    // Optimized text rendering - NO char-current class, cursor is separate element
     const WINDOW_SIZE = 500; // Characters to render before and after current position
 
     const renderedText = useMemo(() => {
         const currentPos = userInput.length;
         const textLength = text.length;
 
-        // For short texts, render everything
+        // For short texts, render everything (no char-current, just correct/incorrect/pending)
         if (textLength <= WINDOW_SIZE * 2) {
             return text.split("").map((char, index) => {
                 let className = "char-pending";
                 if (index < currentPos) {
                     className = userInput[index] === char ? "char-correct" : "char-incorrect";
-                } else if (index === currentPos) {
-                    className = "char-current";
                 }
                 return (
-                    <span key={index} className={className}>
+                    <span key={index} className={className} data-index={index}>
                         {char}
                     </span>
                 );
@@ -419,17 +466,15 @@ export default function TypingTest() {
 
         const elements = [];
 
-        // Render the visible window (no ellipsis to avoid alignment shifts)
+        // Render the visible window
         for (let index = startIndex; index < endIndex; index++) {
             const char = text[index];
             let className = "char-pending";
             if (index < currentPos) {
                 className = userInput[index] === char ? "char-correct" : "char-incorrect";
-            } else if (index === currentPos) {
-                className = "char-current";
             }
             elements.push(
-                <span key={index} className={className}>
+                <span key={index} className={className} data-index={index}>
                     {char}
                 </span>
             );
@@ -439,9 +484,9 @@ export default function TypingTest() {
     }, [text, userInput]);
 
     const getAccuracyColor = () => {
-        if (accuracy >= 90) return "#10b981";
-        if (accuracy >= 70) return "#f59e0b";
-        return "#ef4444";
+        if (accuracy >= 90) return "#a7f3d0";  // Very light mint
+        if (accuracy >= 70) return "#fef08a";  // Very light yellow
+        return "#fecaca";  // Very light coral
     };
 
     return (
@@ -504,6 +549,7 @@ export default function TypingTest() {
                     <div className="nav-links">
                         <Link href="/">Home</Link>
                         <Link href="/test" className="active">Practice</Link>
+                        <Link href="/contest">Contests</Link>
                         <Link href="/leaderboard">Leaderboard</Link>
                         {mounted && isLoggedIn && user && (
                             <Link href="/dashboard">Dashboard</Link>
@@ -523,6 +569,85 @@ export default function TypingTest() {
                 </nav>
 
                 <div className="test-container">
+                    {/* Main Content */}
+                    <main className="main-content">
+                        <div className="typing-header">
+                            <div className="header-top-row">
+                                <div className="header-text">
+                                    <h1>Start Typing</h1>
+                                    <p>Focus on accuracy first, speed will follow</p>
+                                </div>
+                                <div className="header-action">
+                                    {gameState === "ready" && (
+                                        <button className="btn-primary pulse-glow" onClick={startTest}>
+                                            🚀 Start Test
+                                        </button>
+                                    )}
+                                    {gameState === "playing" && (
+                                        <button className="btn-secondary" onClick={finishTest}>
+                                            ⏹️ Finish Early
+                                        </button>
+                                    )}
+                                    {gameState === "finished" && (
+                                        <button className="btn-primary" onClick={resetTest}>
+                                            🔄 Try Again
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Typing Arena */}
+                        <div
+                            className="typing-arena-new"
+                            onClick={() => gameState === "playing" && inputRef.current?.focus({ preventScroll: true })}
+                        >
+                            <div className="typing-text" ref={textContainerRef}>
+                                {renderedText}
+                                {/* Smooth animated cursor - Monkeytype style */}
+                                {gameState === "playing" && (
+                                    <div
+                                        id="caret"
+                                        style={{
+                                            position: 'absolute',
+                                            left: `${cursorPosition.left}px`,
+                                            top: `${cursorPosition.top}px`,
+                                            width: '3px',
+                                            height: `${cursorPosition.height}px`,
+                                            background: '#ff6600',
+                                            borderRadius: '2px',
+                                            pointerEvents: 'none',
+                                            transition: 'left 0.1s linear, top 0.1s linear',
+                                            willChange: 'left, top',
+                                            boxShadow: '0 0 8px rgba(255, 102, 0, 0.6)',
+                                            zIndex: 10,
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                        {/* Hidden input moved outside arena to prevent scroll issues */}
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={userInput}
+                            onChange={handleInput}
+                            disabled={gameState !== "playing"}
+                            className="hidden-input"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                        />
+
+                        {/* Typing Hint */}
+                        {gameState === "playing" && (
+                            <p className="typing-hint">
+                                Click the text area or just start typing...
+                            </p>
+                        )}
+                    </main>
+
                     {/* Side Panel */}
                     <aside className="side-panel">
                         <div className="panel-section">
@@ -571,65 +696,6 @@ export default function TypingTest() {
                             />
                         </div>
                     </aside>
-
-                    {/* Main Content */}
-                    <main className="main-content">
-                        <div className="typing-header">
-                            <div className="header-top-row">
-                                <div className="header-text">
-                                    <h1>Start Typing</h1>
-                                    <p>Focus on accuracy first, speed will follow</p>
-                                </div>
-                                <div className="header-action">
-                                    {gameState === "ready" && (
-                                        <button className="btn-primary pulse-glow" onClick={startTest}>
-                                            🚀 Start Test
-                                        </button>
-                                    )}
-                                    {gameState === "playing" && (
-                                        <button className="btn-secondary" onClick={finishTest}>
-                                            ⏹️ Finish Early
-                                        </button>
-                                    )}
-                                    {gameState === "finished" && (
-                                        <button className="btn-primary" onClick={resetTest}>
-                                            🔄 Try Again
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Typing Arena */}
-                        <div
-                            className="typing-arena-new"
-                            onClick={() => gameState === "playing" && inputRef.current?.focus({ preventScroll: true })}
-                        >
-                            <div className="typing-text">
-                                {renderedText}
-                            </div>
-                        </div>
-                        {/* Hidden input moved outside arena to prevent scroll issues */}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={userInput}
-                            onChange={handleInput}
-                            disabled={gameState !== "playing"}
-                            className="hidden-input"
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-                        />
-
-                        {/* Typing Hint */}
-                        {gameState === "playing" && (
-                            <p className="typing-hint">
-                                Click the text area or just start typing...
-                            </p>
-                        )}
-                    </main>
                 </div>
 
                 {/* Results Modal */}
@@ -649,6 +715,34 @@ export default function TypingTest() {
                                     <div className="result-label">Accuracy</div>
                                 </div>
                             </div>
+
+                            {/* Performance Score and Points */}
+                            {(results.performanceScore !== undefined || results.performancePoints !== undefined) && (
+                                <div className="results-grid" style={{ marginTop: '16px' }}>
+                                    {results.performanceScore !== undefined && (
+                                        <div className="result-card" style={{
+                                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(34, 197, 94, 0.1))',
+                                            border: '1px solid rgba(16, 185, 129, 0.3)'
+                                        }}>
+                                            <div className="result-value" style={{ color: '#10b981' }}>
+                                                {typeof results.performanceScore === 'number' ? results.performanceScore.toFixed(1) : results.performanceScore}
+                                            </div>
+                                            <div className="result-label">Score</div>
+                                        </div>
+                                    )}
+                                    {results.performancePoints !== undefined && (
+                                        <div className="result-card" style={{
+                                            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.1))',
+                                            border: '1px solid rgba(168, 85, 247, 0.3)'
+                                        }}>
+                                            <div className="result-value" style={{ color: '#a855f7' }}>
+                                                +{typeof results.performancePoints === 'number' ? results.performancePoints.toFixed(2) : results.performancePoints}
+                                            </div>
+                                            <div className="result-label">Points Earned</div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="results-details">
                                 <div><span>Time:</span> {results.time}s</div>
