@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { getSampleText, getOrCreateUserId, submitTypingTest } from "@/lib/api";
+import { getSampleText, getOrCreateUserId, submitTypingTest, startTypingTest } from "@/lib/api";
 import { isAuthenticated, getUser, logout } from "@/lib/auth";
 
 const DIFFICULTIES = [
@@ -166,7 +166,7 @@ const StatDisplay = ({ value, label, icon, color, showRing, percentage }) => {
 };
 
 export default function TypingTest() {
-    const [difficulty, setDifficulty] = useState("medium");
+    const [difficulty, setDifficulty] = useState("easy");
     const [selectedTime, setSelectedTime] = useState(60);
     const [gameState, setGameState] = useState("ready");
     const [text, setText] = useState("");
@@ -185,6 +185,8 @@ export default function TypingTest() {
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoadingText, setIsLoadingText] = useState(false);
+    const [textBankId, setTextBankId] = useState(null);
 
     // Refs to track current values for finishTest (avoids stale closures)
     const userInputRef = useRef(userInput);
@@ -246,14 +248,32 @@ export default function TypingTest() {
     }, [startTime]);
 
     const loadText = useCallback(() => {
-        const sampleText = getSampleText(difficulty, selectedTime);
-        setText(sampleText);
-        setUserInput("");
-        setTimeLeft(selectedTime);
-        setWpm(0);
-        setAccuracy(100);
-        setGameState("ready");
-        setResults(null);
+        const fetchText = async () => {
+            setIsLoadingText(true);
+            try {
+                // Try to fetch text from backend API
+                // Convert duration from seconds to minutes for backend
+                const durationInMinutes = Math.round(selectedTime / 60);
+                const response = await startTypingTest(difficulty, durationInMinutes, 'practice');
+                setText(response.content);
+                setTextBankId(response.textId);
+                console.log('Text fetched from backend:', response.textId);
+            } catch (error) {
+                // Fallback to local sample text if API fails
+                console.warn('Failed to fetch text from backend, using sample text:', error.message);
+                setText(getSampleText(difficulty, selectedTime));
+                setTextBankId(null);
+            } finally {
+                setIsLoadingText(false);
+                setUserInput("");
+                setTimeLeft(selectedTime);
+                setWpm(0);
+                setAccuracy(100);
+                setGameState("ready");
+                setResults(null);
+            }
+        };
+        fetchText();
     }, [difficulty, selectedTime]);
 
     useEffect(() => {
@@ -360,6 +380,7 @@ export default function TypingTest() {
             try {
                 const response = await submitTypingTest({
                     userId: user.userId,
+                    textBankId: textBankId,
                     difficulty: difficulty,
                     duration: testResults.time,
                     totalChars: testResults.characters,
@@ -579,8 +600,13 @@ export default function TypingTest() {
                                 </div>
                                 <div className="header-action">
                                     {gameState === "ready" && (
-                                        <button className="btn-primary pulse-glow" onClick={startTest}>
-                                            🚀 Start Test
+                                        <button
+                                            className="btn-primary pulse-glow"
+                                            onClick={startTest}
+                                            disabled={isLoadingText}
+                                            style={isLoadingText ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                                        >
+                                            {isLoadingText ? '⏳ Loading...' : '🚀 Start Test'}
                                         </button>
                                     )}
                                     {gameState === "playing" && (
@@ -603,26 +629,44 @@ export default function TypingTest() {
                             onClick={() => gameState === "playing" && inputRef.current?.focus({ preventScroll: true })}
                         >
                             <div className="typing-text" ref={textContainerRef}>
-                                {renderedText}
-                                {/* Smooth animated cursor - Monkeytype style */}
-                                {gameState === "playing" && (
-                                    <div
-                                        id="caret"
-                                        style={{
-                                            position: 'absolute',
-                                            left: `${cursorPosition.left}px`,
-                                            top: `${cursorPosition.top}px`,
-                                            width: '3px',
-                                            height: `${cursorPosition.height}px`,
-                                            background: '#ff6600',
-                                            borderRadius: '2px',
-                                            pointerEvents: 'none',
-                                            transition: 'left 0.1s linear, top 0.1s linear',
-                                            willChange: 'left, top',
-                                            boxShadow: '0 0 8px rgba(255, 102, 0, 0.6)',
-                                            zIndex: 10,
-                                        }}
-                                    />
+                                {isLoadingText ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '12px',
+                                        color: '#b8b8cc',
+                                        padding: '40px'
+                                    }}>
+                                        <span style={{
+                                            animation: 'pulse 1.5s ease-in-out infinite',
+                                            fontSize: '1.1rem'
+                                        }}>Loading text...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {renderedText}
+                                        {/* Smooth animated cursor - Monkeytype style */}
+                                        {gameState === "playing" && (
+                                            <div
+                                                id="caret"
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: `${cursorPosition.left}px`,
+                                                    top: `${cursorPosition.top}px`,
+                                                    width: '3px',
+                                                    height: `${cursorPosition.height}px`,
+                                                    background: '#ff6600',
+                                                    borderRadius: '2px',
+                                                    pointerEvents: 'none',
+                                                    transition: 'left 0.1s linear, top 0.1s linear',
+                                                    willChange: 'left, top',
+                                                    boxShadow: '0 0 8px rgba(255, 102, 0, 0.6)',
+                                                    zIndex: 10,
+                                                }}
+                                            />
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

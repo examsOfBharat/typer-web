@@ -36,13 +36,14 @@ async function apiRequest(endpoint, options = {}) {
 /**
  * Start a new typing test
  * @param {string} difficulty - Difficulty level (easy, medium, hard, expert)
- * @param {number} duration - Test duration in seconds (default: 60)
+ * @param {number} duration - Test duration in minutes (1, 2, 5, 10, 15, 20, 30)
+ * @param {string} category - Category: 'practice' or 'contest' (default: 'practice')
  * @returns {Promise<{text: string, textId: string, wordCount: number}>}
  */
-export async function startTypingTest(difficulty = 'medium', duration = 60) {
+export async function startTypingTest(difficulty = 'easy', duration = 1, category = 'practice') {
   return apiRequest('/typer/test/start', {
     method: 'POST',
-    body: JSON.stringify({ difficulty, duration }),
+    body: JSON.stringify({ difficulty, duration, category }),
   });
 }
 
