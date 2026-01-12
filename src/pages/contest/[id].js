@@ -36,6 +36,9 @@ export default function ContestDetail() {
     const textRef = useRef("");
     const startTimeRef = useRef(null);
 
+    // Guard to prevent multiple submission attempts (race condition fix)
+    const isSubmittingRef = useRef(false);
+
     // Keep refs synced with state (critical for finishTest to get latest values)
     useEffect(() => {
         userInputRef.current = userInput;
@@ -177,6 +180,8 @@ export default function ContestDetail() {
         startTimeRef.current = now;
         setUserInput("");
         userInputRef.current = "";
+        // Reset submission guard for new test
+        isSubmittingRef.current = false;
         setTimeout(() => {
             inputRef.current?.focus({ preventScroll: true });
         }, 50);
@@ -193,7 +198,15 @@ export default function ContestDetail() {
     };
 
     const finishTest = async () => {
+        // Use ref guard to prevent race condition from multiple interval triggers
+        if (isSubmittingRef.current) {
+            console.log("finishTest: Already submitting, skipping duplicate call");
+            return;
+        }
         if (gameState !== "playing") return;
+
+        // Set guard immediately to prevent any other calls
+        isSubmittingRef.current = true;
         setGameState("finished");
 
         // Use refs to get latest values (avoid stale closure)
@@ -217,7 +230,7 @@ export default function ContestDetail() {
         // Submit to contest
         setSubmitting(true);
         try {
-            const response = await submitContestTest(contestId, {
+            const payload = {
                 userId: user.userId,
                 wpm: finalWpm,
                 accuracy: finalAccuracy,
@@ -225,7 +238,12 @@ export default function ContestDetail() {
                 totalChars: currentUserInput.length,
                 correctChars: correct,
                 duration,
-            });
+            };
+            console.log("Submitting contest test with payload:", JSON.stringify(payload));
+
+            const response = await submitContestTest(contestId, payload);
+            console.log("Contest submission response:", response);
+
             setResult({
                 wpm: finalWpm,
                 accuracy: finalAccuracy,
@@ -236,7 +254,18 @@ export default function ContestDetail() {
             const lb = await getContestLeaderboard(contestId);
             setLeaderboard(lb);
         } catch (error) {
-            console.error("Failed to submit:", error);
+            console.error("Failed to submit contest test:", error);
+            console.error("Error details:", error.message, error.stack);
+            // Show error to user instead of silently failing
+            setResult({
+                wpm: finalWpm,
+                accuracy: finalAccuracy,
+                errors,
+                performanceScore: null,
+                submissionError: error.message || "Failed to submit. Please check your connection.",
+            });
+            // Reset guard to allow retry
+            isSubmittingRef.current = false;
         } finally {
             setSubmitting(false);
         }
@@ -486,29 +515,52 @@ export default function ContestDetail() {
                     {/* Result Display */}
                     {result && (
                         <div className="glass-card" style={{ padding: "40px", marginBottom: "32px", textAlign: "center" }}>
-                            <h2 style={{
-                                fontSize: "2rem",
-                                background: "linear-gradient(135deg, #00d4ff, #a855f7)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                marginBottom: "24px"
-                            }}>
-                                🎉 Contest Submitted!
-                            </h2>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "24px", maxWidth: "600px", margin: "0 auto" }}>
-                                <div style={{ padding: "24px", background: "rgba(0, 212, 255, 0.1)", borderRadius: "16px", border: "1px solid rgba(0, 212, 255, 0.3)" }}>
-                                    <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#00d4ff" }}>{result.wpm}</div>
-                                    <div style={{ color: "#b8b8cc" }}>WPM</div>
-                                </div>
-                                <div style={{ padding: "24px", background: "rgba(168, 85, 247, 0.1)", borderRadius: "16px", border: "1px solid rgba(168, 85, 247, 0.3)" }}>
-                                    <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#a855f7" }}>{result.accuracy.toFixed(1)}%</div>
-                                    <div style={{ color: "#b8b8cc" }}>Accuracy</div>
-                                </div>
-                                <div style={{ padding: "24px", background: "rgba(16, 185, 129, 0.1)", borderRadius: "16px", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
-                                    <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#10b981" }}>{result.performanceScore}</div>
-                                    <div style={{ color: "#b8b8cc" }}>Score</div>
-                                </div>
-                            </div>
+                            {result.submissionError ? (
+                                <>
+                                    <h2 style={{
+                                        fontSize: "2rem",
+                                        color: "#ef4444",
+                                        marginBottom: "24px"
+                                    }}>
+                                        ⚠️ Submission Failed
+                                    </h2>
+                                    <p style={{ color: "#b8b8cc", marginBottom: "16px" }}>
+                                        {result.submissionError}
+                                    </p>
+                                    <p style={{ color: "#6b6b80", fontSize: "0.9rem" }}>
+                                        Your test results: {result.wpm} WPM, {result.accuracy.toFixed(1)}% accuracy
+                                    </p>
+                                    <p style={{ color: "#f59e0b", fontSize: "0.85rem", marginTop: "16px" }}>
+                                        Please contact support with your contest ID and user ID.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <h2 style={{
+                                        fontSize: "2rem",
+                                        background: "linear-gradient(135deg, #00d4ff, #a855f7)",
+                                        WebkitBackgroundClip: "text",
+                                        WebkitTextFillColor: "transparent",
+                                        marginBottom: "24px"
+                                    }}>
+                                        🎉 Contest Submitted!
+                                    </h2>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "24px", maxWidth: "600px", margin: "0 auto" }}>
+                                        <div style={{ padding: "24px", background: "rgba(0, 212, 255, 0.1)", borderRadius: "16px", border: "1px solid rgba(0, 212, 255, 0.3)" }}>
+                                            <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#00d4ff" }}>{result.wpm}</div>
+                                            <div style={{ color: "#b8b8cc" }}>WPM</div>
+                                        </div>
+                                        <div style={{ padding: "24px", background: "rgba(168, 85, 247, 0.1)", borderRadius: "16px", border: "1px solid rgba(168, 85, 247, 0.3)" }}>
+                                            <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#a855f7" }}>{result.accuracy.toFixed(1)}%</div>
+                                            <div style={{ color: "#b8b8cc" }}>Accuracy</div>
+                                        </div>
+                                        <div style={{ padding: "24px", background: "rgba(16, 185, 129, 0.1)", borderRadius: "16px", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                                            <div style={{ fontSize: "2.5rem", fontWeight: 700, color: "#10b981" }}>{result.performanceScore}</div>
+                                            <div style={{ color: "#b8b8cc" }}>Score</div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
 
