@@ -57,11 +57,18 @@ export async function startTypingTest(difficulty = 'easy', duration = 1, categor
  * @param {number} params.totalChars - Total characters typed
  * @param {number} params.correctChars - Correctly typed characters
  * @param {number} params.errors - Number of errors
- * @param {number} params.wpm - Calculated WPM
+ * @param {number} params.wpm - Calculated WPM (character-based, correct chars only)
  * @param {number} params.accuracy - Calculated accuracy percentage
- * @returns {Promise<{success: boolean, testId: string, wpm: number, accuracy: number}>}
+ * @param {number} params.rawWpm - Raw WPM (includes incorrect chars)
+ * @param {number} params.consistency - Typing consistency score
+ * @param {number} params.extraChars - Extra characters typed beyond text
+ * @param {number} params.missedChars - Characters not typed
+ * @returns {Promise<{success: boolean, testId: string, wpm: number, accuracy: number, rawWpm: number, charStats: string}>}
  */
-export async function submitTypingTest({ userId, textBankId, difficulty, duration, totalChars, correctChars, errors, wpm, accuracy }) {
+export async function submitTypingTest({
+  userId, textBankId, difficulty, duration, totalChars, correctChars, errors, wpm, accuracy,
+  rawWpm, consistency, extraChars, missedChars
+}) {
   return apiRequest('/typer/test/submit', {
     method: 'POST',
     body: JSON.stringify({
@@ -74,6 +81,10 @@ export async function submitTypingTest({ userId, textBankId, difficulty, duratio
       errors,
       wpm,
       accuracy,
+      rawWpm,
+      consistency,
+      extraChars,
+      missedChars,
     }),
   });
 }

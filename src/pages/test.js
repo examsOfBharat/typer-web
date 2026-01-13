@@ -297,15 +297,22 @@ export default function TypingTest() {
         return () => clearInterval(timer);
     }, [gameState]);
 
-    // Real-time WPM/accuracy calculation
+    // Real-time WPM/accuracy calculation (MonkeyType-style character-based)
     useEffect(() => {
 
         if (gameState !== "playing" || !startTime) return;
 
         const elapsedMinutes = (Date.now() - startTime) / 60000;
         if (elapsedMinutes > 0) {
-            const wordsTyped = userInput.trim().split(/\s+/).filter(Boolean).length;
-            setWpm(Math.round(wordsTyped / elapsedMinutes));
+            // Count correct characters for true WPM
+            let correctChars = 0;
+            for (let i = 0; i < userInput.length; i++) {
+                if (i < text.length && userInput[i] === text[i]) {
+                    correctChars++;
+                }
+            }
+            // Character-based WPM: correctChars / 5 / minutes
+            setWpm(Math.round((correctChars / 5) / elapsedMinutes));
         }
 
         let correct = 0;
@@ -351,26 +358,56 @@ export default function TypingTest() {
         const currentText = textRef.current;
         const currentStartTime = startTimeRef.current;
 
-        const elapsedMinutes = (Date.now() - currentStartTime) / 60000;
-        const wordsTyped = currentInput.trim().split(/\s+/).filter(Boolean).length;
-        const finalWpm = Math.round(wordsTyped / elapsedMinutes);
+        const elapsedSeconds = (Date.now() - currentStartTime) / 1000;
+        const elapsedMinutes = elapsedSeconds / 60;
 
-        let correct = 0;
-        for (let i = 0; i < currentInput.length; i++) {
-            if (currentInput[i] === currentText[i]) {
-                correct++;
+        // MonkeyType-style character analysis
+        const inputLength = currentInput.length;
+        const textLength = currentText.length;
+
+        let correctChars = 0;
+        let incorrectChars = 0;
+
+        for (let i = 0; i < inputLength; i++) {
+            if (i < textLength && currentInput[i] === currentText[i]) {
+                correctChars++;
+            } else {
+                incorrectChars++;
             }
         }
-        const finalAccuracy =
-            currentInput.length > 0 ? Math.round((correct / currentInput.length) * 100) : 0;
+
+        // Extra chars = typed beyond text length
+        const extraChars = Math.max(0, inputLength - textLength);
+        // Missed chars = text not reached
+        const missedChars = Math.max(0, textLength - inputLength);
+
+        // True WPM (MonkeyType style): Only correct characters count
+        // Standard: 5 characters = 1 word
+        const wpm = elapsedMinutes > 0 ? Math.round((correctChars / 5) / elapsedMinutes) : 0;
+
+        // Raw WPM: All typed characters (including incorrect)
+        const rawWpm = elapsedMinutes > 0 ? Math.round((inputLength / 5) / elapsedMinutes) : 0;
+
+        // Accuracy: correctly typed / total typed
+        const accuracy = inputLength > 0
+            ? Math.round((correctChars / inputLength) * 100)
+            : 0;
+
+        // Consistency: placeholder for now (would need per-word timing for real calculation)
+        // For now, use a simple estimate based on accuracy variance
+        const consistency = 100; // Will be enhanced later with keystroke timing
 
         const testResults = {
-            wpm: finalWpm,
-            accuracy: finalAccuracy,
-            time: Math.round((Date.now() - currentStartTime) / 1000),
-            characters: currentInput.length,
-            correct: correct,
-            errors: currentInput.length - correct,
+            wpm: wpm,
+            rawWpm: rawWpm,
+            accuracy: accuracy,
+            time: Math.round(elapsedSeconds),
+            characters: inputLength,
+            correct: correctChars,
+            errors: incorrectChars,
+            extraChars: extraChars,
+            missedChars: missedChars,
+            consistency: consistency,
         };
 
         setResults(testResults);
@@ -388,6 +425,10 @@ export default function TypingTest() {
                     errors: testResults.errors,
                     wpm: testResults.wpm,
                     accuracy: testResults.accuracy,
+                    rawWpm: testResults.rawWpm,
+                    consistency: testResults.consistency,
+                    extraChars: testResults.extraChars,
+                    missedChars: testResults.missedChars,
                 });
                 console.log('Test result saved successfully', response);
                 // Update results with performanceScore and performancePoints from API response
@@ -396,6 +437,7 @@ export default function TypingTest() {
                         ...prev,
                         performanceScore: response.performanceScore,
                         performancePoints: response.performancePoints,
+                        charStats: response.charStats,
                     }));
                 }
             } catch (error) {
@@ -752,7 +794,14 @@ export default function TypingTest() {
                             <div className="results-grid">
                                 <div className="result-card primary">
                                     <div className="result-value">{results.wpm}</div>
-                                    <div className="result-label">Words/Min</div>
+                                    <div className="result-label">WPM</div>
+                                </div>
+                                <div className="result-card" style={{
+                                    background: 'linear-gradient(135deg, rgba(100, 116, 139, 0.2), rgba(71, 85, 105, 0.1))',
+                                    border: '1px solid rgba(100, 116, 139, 0.3)'
+                                }}>
+                                    <div className="result-value" style={{ color: '#94a3b8' }}>{results.rawWpm}</div>
+                                    <div className="result-label">Raw WPM</div>
                                 </div>
                                 <div className="result-card secondary">
                                     <div className="result-value">{results.accuracy}%</div>
@@ -790,12 +839,17 @@ export default function TypingTest() {
 
                             <div className="results-details">
                                 <div><span>Time:</span> {results.time}s</div>
-                                <div><span>Characters:</span> {results.characters}</div>
                                 <div>
-                                    <span>Errors:</span>{" "}
-                                    <span className={results.errors > 0 ? "error" : "success"}>
-                                        {results.errors}
-                                    </span>
+                                    <span>Characters:</span>{" "}
+                                    <span className="success">{results.correct}</span>
+                                    <span style={{ color: '#94a3b8' }}> / </span>
+                                    <span className={results.errors > 0 ? "error" : "success"}>{results.errors}</span>
+                                    {results.extraChars > 0 && (
+                                        <span style={{ color: '#f59e0b' }}> +{results.extraChars}</span>
+                                    )}
+                                    {results.missedChars > 0 && (
+                                        <span style={{ color: '#6b7280' }}> -{results.missedChars}</span>
+                                    )}
                                 </div>
                             </div>
 
