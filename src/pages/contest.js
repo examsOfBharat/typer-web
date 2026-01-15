@@ -298,19 +298,23 @@ export default function Contests() {
                                             const isCompletedByTime = now >= endTime;
                                             const isUpcomingByTime = now < startTime;
 
-                                            // Show Start button if contest is LIVE or if startTime has passed
-                                            if ((contest.status === "LIVE" || isLiveByTime) && contest.isUserRegistered && !contest.hasUserSubmitted) {
+                                            // Explicit boolean checks to handle null/undefined
+                                            const isRegistered = contest.isUserRegistered === true;
+                                            const hasSubmitted = contest.hasUserSubmitted === true;
+
+                                            // PRIORITY 1: Show View Results for completed contests
+                                            if (contest.status === "COMPLETED" || isCompletedByTime) {
                                                 return (
                                                     <Link href={`/contest/${contest.id}`}>
-                                                        <button className="btn-primary pulse-glow">
-                                                            🎯 Start Contest
+                                                        <button className="btn-secondary">
+                                                            View Results
                                                         </button>
                                                     </Link>
                                                 );
                                             }
 
-                                            // Show Submitted badge if already submitted
-                                            if ((contest.status === "LIVE" || isLiveByTime) && contest.hasUserSubmitted) {
+                                            // PRIORITY 2: Show Submitted badge if already submitted
+                                            if ((contest.status === "LIVE" || isLiveByTime) && hasSubmitted) {
                                                 return (
                                                     <span style={{
                                                         padding: "12px 24px",
@@ -325,8 +329,32 @@ export default function Contests() {
                                                 );
                                             }
 
-                                            // Show Registered badge for upcoming contests
-                                            if (isUpcomingByTime && contest.isUserRegistered) {
+                                            // PRIORITY 3: Show Start button if contest is LIVE and user is registered
+                                            if ((contest.status === "LIVE" || isLiveByTime) && isRegistered && !hasSubmitted) {
+                                                return (
+                                                    <Link href={`/contest/${contest.id}`}>
+                                                        <button className="btn-primary pulse-glow">
+                                                            🎯 Start Contest
+                                                        </button>
+                                                    </Link>
+                                                );
+                                            }
+
+                                            // PRIORITY 4: Contest is live but user not registered - allow late registration
+                                            if ((contest.status === "LIVE" || isLiveByTime) && !isRegistered && !hasSubmitted) {
+                                                return (
+                                                    <button
+                                                        className="btn-primary"
+                                                        onClick={() => handleRegister(contest.id)}
+                                                        disabled={registering === contest.id}
+                                                    >
+                                                        {registering === contest.id ? "Registering..." : "🚀 Join & Start"}
+                                                    </button>
+                                                );
+                                            }
+
+                                            // PRIORITY 5: Show Registered badge for upcoming contests
+                                            if (isUpcomingByTime && isRegistered) {
                                                 return (
                                                     <span style={{
                                                         padding: "12px 24px",
@@ -341,8 +369,8 @@ export default function Contests() {
                                                 );
                                             }
 
-                                            // Show Register button for upcoming contests
-                                            if (isUpcomingByTime && !contest.isUserRegistered) {
+                                            // PRIORITY 6: Show Register button for upcoming contests
+                                            if (isUpcomingByTime && !isRegistered) {
                                                 return (
                                                     <button
                                                         className="btn-primary"
@@ -354,17 +382,14 @@ export default function Contests() {
                                                 );
                                             }
 
-                                            // Show View Results for completed contests
-                                            if (contest.status === "COMPLETED" || isCompletedByTime) {
-                                                return (
-                                                    <Link href={`/contest/${contest.id}`}>
-                                                        <button className="btn-secondary">
-                                                            View Results
-                                                        </button>
-                                                    </Link>
-                                                );
-                                            }
-
+                                            // Fallback: Should not reach here, but show a helpful message
+                                            console.warn('Contest button fallback:', {
+                                                contestId: contest.id,
+                                                status: contest.status,
+                                                isLiveByTime,
+                                                isRegistered,
+                                                hasSubmitted
+                                            });
                                             return null;
                                         })()}
                                     </div>

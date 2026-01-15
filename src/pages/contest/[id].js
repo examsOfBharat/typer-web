@@ -433,7 +433,7 @@ export default function ContestDetail() {
                     )}
 
                     {/* Contest Test Area (for registered users when contest is active) */}
-                    {isContestActive && contest.isUserRegistered && !contest.hasUserSubmitted && !result && (
+                    {isContestActive && contest.isUserRegistered === true && contest.hasUserSubmitted !== true && !result && (
                         <div className="glass-card" style={{ padding: "32px", marginBottom: "32px" }}>
                             {/* Stats Bar */}
                             <div style={{
@@ -509,6 +509,60 @@ export default function ContestDetail() {
                                     </div>
                                 </>
                             )}
+                        </div>
+                    )}
+
+                    {/* Not Registered but Contest is Active - Offer Quick Registration */}
+                    {isContestActive && contest.isUserRegistered !== true && contest.hasUserSubmitted !== true && !result && user && (
+                        <div className="glass-card" style={{
+                            padding: "40px",
+                            marginBottom: "32px",
+                            textAlign: "center",
+                            background: "linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1))",
+                            border: "1px solid rgba(245, 158, 11, 0.3)"
+                        }}>
+                            <p style={{ fontSize: "3rem", marginBottom: "16px" }}>⚡</p>
+                            <h2 style={{ marginBottom: "8px", color: "#f59e0b" }}>Contest is Live!</h2>
+                            <p style={{ color: "#b8b8cc", marginBottom: "24px" }}>
+                                You're not registered for this contest yet. Register now to participate!
+                            </p>
+                            <button
+                                className="btn-primary pulse-glow"
+                                onClick={async () => {
+                                    try {
+                                        const { registerForContest } = await import('@/lib/api');
+                                        await registerForContest(contestId, user.userId);
+                                        // Reload contest data to update registration status
+                                        loadContestData();
+                                    } catch (error) {
+                                        console.error("Failed to register:", error);
+                                        alert("Failed to register. Please try again.");
+                                    }
+                                }}
+                            >
+                                🚀 Register & Start Now
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Not Logged In but Contest is Active - Show Login Prompt */}
+                    {isContestActive && !user && !result && (
+                        <div className="glass-card" style={{
+                            padding: "40px",
+                            marginBottom: "32px",
+                            textAlign: "center",
+                            background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 212, 255, 0.1))"
+                        }}>
+                            <p style={{ fontSize: "3rem", marginBottom: "16px" }}>🔐</p>
+                            <h2 style={{ marginBottom: "8px" }}>Login Required</h2>
+                            <p style={{ color: "#b8b8cc", marginBottom: "24px" }}>
+                                Please login to participate in this contest.
+                            </p>
+                            <Link href={`/login?redirect=/contest/${contestId}`}>
+                                <button className="btn-primary">
+                                    Login to Participate
+                                </button>
+                            </Link>
                         </div>
                     )}
 

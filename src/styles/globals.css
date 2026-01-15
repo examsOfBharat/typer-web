@@ -245,16 +245,18 @@ body {
 
 .char-incorrect {
   color: #ef4444;
-  text-decoration: underline;
+  /* Using box-shadow instead of text-decoration to prevent layout shift */
+  box-shadow: inset 0 -2px 0 0 #ef4444;
   will-change: color;
 }
 
 .char-current {
-  border-left: 3px solid #ff6600 !important;
-  background: transparent !important;
+  /* Note: Cursor is now a separate element for smoother animation */
+  /* Keeping minimal styling for fallback scenarios */
+  background: rgba(255, 102, 0, 0.15) !important;
   color: var(--text-muted) !important;
-  margin-left: -1px;
-  will-change: border-left;
+  border-radius: 2px;
+  will-change: background;
 }
 
 .char-pending {
@@ -782,9 +784,15 @@ body {
   font-family: var(--font-mono);
   font-size: 1.4rem;
   line-height: 2.2;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.02em;
   user-select: none;
   position: relative;
+  /* Text stabilization - prevents fluctuation during typing */
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Butter-smooth animated cursor */
